@@ -127,7 +127,7 @@ class PhotoAnalysis:
 
         sorted_result = sorted(data, key=lambda d: d[self.fieldnames[0]])
         self.write_csv(self.sorted_csv_output, dictionnary=sorted_result, size_dump=False)
-        self.write_html(data)
+        self.write_html(sorted_result)
         return sorted_result
 
 
@@ -164,23 +164,6 @@ class PhotoAnalysis:
             for i in report_dict.items():
 
                 writer.writerow(i)
-
-    def generate_xlsx_index(self, data):
-        """genereate a xlsx sheet where path of files are hyperlink"""
-        try:
-            os.remove(self.xlsx_index)
-        except FileNotFoundError as error:
-            pass
-
-        # data = self.read_csv(self.sorted_csv_output)
-
-        for i in data:
-            i['PATH'] = str(f'=HYPERLINK("{i["PATH"]}", "{i["PATH"]}")')
-            print(i)
-        df = pd.DataFrame(data=data)
-
-        with pd.ExcelWriter(self.xlsx_index, engine='xlsxwriter') as writer:
-            df.to_excel(writer, index=False)
 
 
     def continue_analysis(self):
