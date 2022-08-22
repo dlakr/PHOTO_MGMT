@@ -20,8 +20,10 @@ temp_csv_loc = os.path.join(temp_loc, temp_csv)
 test_location = r'F:\Dropbox\pictures_sorted\2009'
 if os.name == 'nt':
     desktop = os.path.join(os.path.join(os.environ['USERPROFILE']), 'Desktop')
+
 else:
     desktop = os.path.join(os.path.join(os.path.expanduser('~')), 'Desktop')
+    test_location = r'/Volumes/STORAGE/Dropbox/pictures_sorted/2009'
 try:
     output_folder = os.mkdir(os.path.join(desktop, 'photo_analysis'))
 except FileExistsError as error:
