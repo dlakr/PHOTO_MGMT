@@ -1,6 +1,6 @@
 
 #!m_venv\Scripts\python3
-
+from bs4 import BeautifulSoup
 import os
 import re
 import csv
@@ -57,6 +57,20 @@ class PhotoAnalysis:
     def check_temp_csv(self, temp_csv_loc):
         """checks if temp_csv exists and returns its latest entry parent"""
 
+    def write_html(self, data):
+        link = """<ul>
+        """
+        for i in data:
+            link = link + f"""<li><b>{i[self.fieldnames[0]]}</b><a href="{i[self.fieldnames[1]]}">{i[self.fieldnames[1]]}
+            </a></li>\n"""
+        link += "</ul>"
+        print(link)
+        soup = BeautifulSoup(link, 'html.parser')
+        output_loc = os.path.join(output_folder, "output.html")
+        with open(output_loc, "w", encoding='utf-8') as file:
+            # prettify the soup object and convert it into a string
+            file.write(str(soup.prettify()))
+
 
 
     def start_analysis(self):
@@ -112,7 +126,8 @@ class PhotoAnalysis:
         data = self.read_csv(temp_csv_loc)
 
         sorted_result = sorted(data, key=lambda d: d[self.fieldnames[0]])
-        self.generate_xlsx_index(data=sorted_result)
+        self.write_csv(self.sorted_csv_output, dictionnary=sorted_result, size_dump=False)
+        self.write_html(data)
         return sorted_result
 
 
