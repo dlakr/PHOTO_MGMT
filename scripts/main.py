@@ -1,17 +1,16 @@
 
-#!m_venv\Scripts\python3
+#!venv\Scripts\python.exe
 
 import os
 import re
 import csv
 import pandas as pd
+
 import PIL
-from PIL import Image, ImageFile
+from PIL import Image
 from pillow_heif import register_heif_opener
 from PIL.ExifTags import TAGS
 import sys
-
-ImageFile.LOAD_TRUNCATED_IMAGES = True
 register_heif_opener()
 location = ''
 temp_csv = 'temp.csv'
@@ -28,7 +27,6 @@ try:
     output_folder = os.mkdir(os.path.join(desktop, 'photo_analysis'))
 except FileExistsError as error:
     output_folder = os.path.join(desktop, 'photo_analysis')
-    print(output_folder)
 print(desktop)
 
 class PhotoAnalysis:
@@ -175,11 +173,9 @@ class PhotoAnalysis:
     def process_all_img(self, path):
         """retrieves date metadata if file is in HEIC format"""
         print(path)
-        r = {self.fieldnames[0]: 'UNKNOWN FORMAT', self.fieldnames[1]: path}
         try:
             img = Image.open(path)
             img_exif = img.getexif()
-
             if img_exif:
                 exif = {TAGS[k]:v for k, v in img_exif.items() if k in TAGS and type(v) is not bytes}
                 pattern = r'\d{4}:\d{2}:\d{2} \d{2}:\d{2}:\d{2}'
@@ -192,11 +188,7 @@ class PhotoAnalysis:
                 date = '-not_dated-'
             return {self.fieldnames[0]: date, self.fieldnames[1]: path}
         except PIL.UnidentifiedImageError as error:
-            return r
-        except OSError as error:
-            r_os = r
-            r_os[self.fieldnames] = 'Truncated File'
-            return r_os
+            return {self.fieldnames[0]: 'UNKNOWN FORMAT', self.fieldnames[1]: path}
 
     def get_data(self, directory):
         """get absolute path of image file in the given formats"""
