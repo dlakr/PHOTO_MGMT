@@ -64,10 +64,10 @@ class PhotoAnalysis:
 
         while self.directory != 'q':
 
-            print('s = sort entries (csv)')
+            print('s = sort entries and output xlsx index')
             print('r = generate report (csv)')
             print('e = end aquiring process')
-            print('xl = generate excel from csv ')
+            # print('xl = generate excel from csv ')
             print('q = quit')
             self.directory = input('Enter directory:')
             if self.directory == '':
@@ -79,12 +79,11 @@ class PhotoAnalysis:
             elif self.directory == 's':
                 self.end_aquisition()
                 self.sorted_result = self.sort_temp_csv()
-                for i in self.sorted_result:
-                    print(i)
+
                 self.output(self.sorted_csv_output, self.sorted_result, False)
-            elif self.directory == 'xl':
-                self.end_aquisition()
-                self.generate_xlsx_index()
+            # elif self.directory == 'xl':
+            #     self.end_aquisition()
+            #     self.generate_xlsx_index()
             elif self.directory == 'r':
                 self.end_aquisition()
             else:
@@ -113,7 +112,7 @@ class PhotoAnalysis:
         data = self.read_csv(temp_csv_loc)
 
         sorted_result = sorted(data, key=lambda d: d[self.fieldnames[0]])
-        self.generate_xlsx_index()
+        self.generate_xlsx_index(data=sorted_result)
         return sorted_result
 
 
@@ -151,14 +150,14 @@ class PhotoAnalysis:
 
                 writer.writerow(i)
 
-    def generate_xlsx_index(self):
+    def generate_xlsx_index(self, data):
         """genereate a xlsx sheet where path of files are hyperlink"""
         try:
             os.remove(self.xlsx_index)
         except FileNotFoundError as error:
             pass
 
-        data = self.read_csv(self.sorted_csv_output)
+        # data = self.read_csv(self.sorted_csv_output)
 
         for i in data:
             i['PATH'] = str(f'=HYPERLINK("{i["PATH"]}", "{i["PATH"]}")')
