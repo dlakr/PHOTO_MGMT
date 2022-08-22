@@ -98,6 +98,7 @@ class PhotoAnalysis:
 
 
     def read_csv(self, csv_loc):
+
         with open(csv_loc, encoding='utf-8', newline='') as f:
             reader = csv.DictReader(f, delimiter=',')
             result = list(reader)
@@ -109,7 +110,7 @@ class PhotoAnalysis:
         data = self.read_csv(temp_csv_loc)
 
         sorted_result = sorted(data, key=lambda d: d[self.fieldnames[0]])
-        self.generate_xlsx_index()
+        self.write_csv(self.sorted_csv_output, sorted_result, size_dump=False)
         return sorted_result
 
 
@@ -220,6 +221,8 @@ class PhotoAnalysis:
         open_type = 'a'
         if not append:
             open_type = 'w'
+        if not os.path.exists(temp_loc):
+            os.mkdir(temp_loc)
         with open(file_loc, open_type, encoding='UTF-8', newline='') as f:
             writer = csv.DictWriter(f, fieldnames=self.fieldnames)
             if open_type == 'w':
