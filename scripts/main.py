@@ -4,7 +4,7 @@ import os
 import re
 import csv
 import pandas as pd
-
+import xlsxwriter
 import PIL
 from PIL import Image
 from pillow_heif import register_heif_opener
