@@ -1,4 +1,3 @@
-
 #!venv\Scripts\python.exe
 
 import os
