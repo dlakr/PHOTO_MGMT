@@ -41,7 +41,8 @@ class PhotoAnalysis:
         self.append = False
         self.dict_update = 0
         self.size_dump = True
-        self.sorted_csv_output = os.path.join(output_folder, 'sorted.csv')
+        self.date_sorted_csv_output = os.path.join(output_folder, 'date_sorted.csv')
+        self.no_date_csv_output = os.path.join(output_folder, 'no_date.csv')
         self.xlsx_index = os.path.join(output_folder, 'index.xlsx')
         self.sorted_result = {}
         if os.path.exists(temp_csv_loc):
@@ -94,7 +95,6 @@ class PhotoAnalysis:
                 self.end_aquisition()
                 self.sorted_result = self.sort_temp_csv()
 
-                self.output(self.sorted_csv_output, self.sorted_result, False)
             # elif self.directory == 'xl':
             #     self.end_aquisition()
             #     self.generate_xlsx_index()
@@ -124,14 +124,39 @@ class PhotoAnalysis:
         print('sorting')
         print(temp_csv_loc)
         data = self.read_csv(temp_csv_loc)
+        sorted_list = sorted(data, key=lambda d: d[self.fieldnames[0]])
+        undated = []
+        dated = []
 
-        sorted_result = sorted(data, key=lambda d: d[self.fieldnames[0]])
-        self.write_csv(self.sorted_csv_output, dictionnary=sorted_result, size_dump=False)
-        self.write_html(sorted_result)
+        for i in sorted_list:
+            if i[self.fieldnames[0]] == '-not_dated-'  or i[self.fieldnames[0]] == 'UNKNOWN FORMAT':
+                undated.append(i)
+            else:
+                dated.append(i)
+        sorted_result = {'dated': dated, 'undated':undated}
+
+        self.split_sorted_result_dated(dated)
         return sorted_result
 
 
-    # def report_manager(self):
+    def split_sorted_result_dated(self, lod):
+        """will group the dated entries by year when supplied a lod (list of dictionaries)"""
+        years_dict = {}
+        years = []
+        for e in lod:
+            year = e[self.fieldnames[0]][:4]
+            if year not in years:
+                years.append(year)
+                years_dict[year] = [e]
+            else:
+                years_dict[year].append(e)
+        return years_dict
+
+
+    def append_year_address(self, year):
+        """ will append the location of the html page created"""
+        output_path = os.path.join(output_folder, 'pages', f'{year}.html')
+        return output_path
 
     def generate_report(self, sorted_data):
         """generates a report counting files by month"""
@@ -142,7 +167,7 @@ class PhotoAnalysis:
         else:
             path = input('what is the sorted data location (enter to use default)')
             if path == '':
-                path = self.sorted_csv_output
+                path = self.date_sorted_csv_output
             data = self.read_csv(path)
 
         for i in data:
