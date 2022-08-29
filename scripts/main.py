@@ -59,7 +59,7 @@ class PhotoAnalysis:
         """checks if temp_csv exists and returns its latest entry parent"""
 
     def write_html(self, name, data, headers):
-        """writes out html page containing links to images"""# the last page shoud be the index with links pointing at all the files generated in the process
+        """writes out html page containing links to images"""
         link = """<ul>
         """
         for i in data:
