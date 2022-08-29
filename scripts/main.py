@@ -28,8 +28,7 @@ try:
     output_folder = os.mkdir(os.path.join(desktop, 'photo_analysis'))
 except FileExistsError as error:
     output_folder = os.path.join(desktop, 'photo_analysis')
-    print(output_folder)
-print(desktop)
+
 
 class PhotoAnalysis:
 
@@ -45,6 +44,7 @@ class PhotoAnalysis:
         self.no_date_csv_output = os.path.join(output_folder, 'no_date.csv')
         self.xlsx_index = os.path.join(output_folder, 'index.xlsx')
         self.sorted_result = {}
+        self.html_addresses = []
         if os.path.exists(temp_csv_loc):
 
             c = input('continue where you left off?(y/n)')
@@ -58,19 +58,32 @@ class PhotoAnalysis:
     def check_temp_csv(self, temp_csv_loc):
         """checks if temp_csv exists and returns its latest entry parent"""
 
-    def write_html(self, data):
+    def write_html(self, name, data, headers):
+        """writes out html page containing links to images"""# the last page shoud be the index with links pointing at all the files generated in the process
         link = """<ul>
         """
         for i in data:
-            link = link + f"""<li><b>{i[self.fieldnames[0]]}</b><a href="{i[self.fieldnames[1]]}">{i[self.fieldnames[1]]}
+
+            link = link + f"""<li><b>{i[headers[0]]}</b><a 
+            href="{i[headers[1]]}">{i[headers[1]]}
             </a></li>\n"""
         link += "</ul>"
-        print(link)
+        html_folder = 'HTML'
         soup = BeautifulSoup(link, 'html.parser')
-        output_loc = os.path.join(output_folder, "output.html")
+        output_loc = os.path.join(output_folder, html_folder, f"{name}.html")
         with open(output_loc, "w", encoding='utf-8') as file:
-            # prettify the soup object and convert it into a string
             file.write(str(soup.prettify()))
+
+    def write_multipage_html(self, data):
+        """writes html pages and indexes for entries in """
+        years = []
+        i_headers = ['disp', 'link']
+        for k, v in data.items():
+            self.write_html(name=k, data=v, headers=self.fieldnames)
+            years.append({i_headers[0]: k, i_headers[1]: f"{k}.html"})
+        self.write_html(name='INDEX', data=years, headers=i_headers)
+        # for y in years:
+        #     print(y)
 
 
 
@@ -94,24 +107,21 @@ class PhotoAnalysis:
             elif self.directory == 's':
                 self.end_aquisition()
                 self.sorted_result = self.sort_temp_csv()
+                to_html = self.split_sorted_result_dated(self.sorted_result)
+                # print(to_html)
+                self.write_multipage_html(data=to_html)
 
-            # elif self.directory == 'xl':
-            #     self.end_aquisition()
-            #     self.generate_xlsx_index()
             elif self.directory == 'r':
                 self.end_aquisition()
             else:
                 self.get_data(self.directory)
-
-
         self.end_aquisition()
-
 
     def end_aquisition(self):
         self.write_csv(temp_csv_loc, self.buffer, size_dump=False)
+
         with open('dir_to_analyse.txt', 'w') as f:
             f.write(self.directory)
-
 
     def read_csv(self, csv_loc):
         with open(csv_loc, encoding='utf-8', newline='') as f:
@@ -133,29 +143,35 @@ class PhotoAnalysis:
                 undated.append(i)
             else:
                 dated.append(i)
-        sorted_result = {'dated': dated, 'undated':undated}
+        sorted_result = {'dated': dated, 'undated': undated}
 
-        self.split_sorted_result_dated(dated)
+
         return sorted_result
 
-
     def split_sorted_result_dated(self, lod):
-        """will group the dated entries by year when supplied a lod (list of dictionaries)"""
+        """group the dated entries by year when supplied a lod (list of dictionaries)"""
         years_dict = {}
         years = []
-        for e in lod:
+        # print(lod)
+        for e in lod['dated']:
+            # for k, v in dictionary.items():
             year = e[self.fieldnames[0]][:4]
+
             if year not in years:
                 years.append(year)
                 years_dict[year] = [e]
+                self.html_addresses += self.append_year_address(year)
             else:
                 years_dict[year].append(e)
+
+
         return years_dict
 
 
     def append_year_address(self, year):
-        """ will append the location of the html page created"""
-        output_path = os.path.join(output_folder, 'pages', f'{year}.html')
+        """append the location of the html page created"""
+        output_path = {year: os.path.join(output_folder, 'pages', f'{year}.html')}
+
         return output_path
 
     def generate_report(self, sorted_data):
@@ -181,7 +197,6 @@ class PhotoAnalysis:
             else:
                 report_dict[month[0]] = 1
 
-
         output_path = os.path.join(output_folder, 'report.csv')
 
         with open(output_path, 'w', encoding='utf-8', newline='') as f:
@@ -189,7 +204,6 @@ class PhotoAnalysis:
             for i in report_dict.items():
 
                 writer.writerow(i)
-
 
     def continue_analysis(self):
         """continues an existing analysys at existing location"""
@@ -281,7 +295,6 @@ class PhotoAnalysis:
             self.output_temp(file_loc, dictionnary, self.append)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-
         self.write_csv(temp_csv_loc, self.buffer, size_dump=False)# the dump is not linked budder_dict size
 
 if __name__ == "__main__":
