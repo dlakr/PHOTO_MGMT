@@ -70,6 +70,8 @@ class PhotoAnalysis:
         link += "</ul>"
         html_folder = 'HTML'
         soup = BeautifulSoup(link, 'html.parser')
+        if  not os.path.exists(os.path.join(output_folder, html_folder)):
+            os.mkdir(os.path.join(output_folder, html_folder))
         output_loc = os.path.join(output_folder, html_folder, f"{name}.html")
         with open(output_loc, "w", encoding='utf-8') as file:
             file.write(str(soup.prettify()))
@@ -82,8 +84,7 @@ class PhotoAnalysis:
             self.write_html(name=k, data=v, headers=self.fieldnames)
             years.append({i_headers[0]: k, i_headers[1]: f"{k}.html"})
         self.write_html(name='INDEX', data=years, headers=i_headers)
-        # for y in years:
-        #     print(y)
+
 
 
 
@@ -108,7 +109,7 @@ class PhotoAnalysis:
                 self.end_aquisition()
                 self.sorted_result = self.sort_temp_csv()
                 to_html = self.split_sorted_result_dated(self.sorted_result)
-                # print(to_html)
+
                 self.write_multipage_html(data=to_html)
 
             elif self.directory == 'r':
@@ -132,17 +133,30 @@ class PhotoAnalysis:
     def sort_temp_csv(self):
         """sorts out entries by date to a desktop file and"""
         print('sorting')
-        print(temp_csv_loc)
+
         data = self.read_csv(temp_csv_loc)
         sorted_list = sorted(data, key=lambda d: d[self.fieldnames[0]])
         undated = []
         dated = []
-
+        undated_count = 0
+        dated_count = 0
+        pattern = r'^.*(\.photoslibrary\/originals)'
         for i in sorted_list:
-            if i[self.fieldnames[0]] == '-not_dated-'  or i[self.fieldnames[0]] == 'UNKNOWN FORMAT':
+            if i[self.fieldnames[0]] == '-not_dated-' or i[self.fieldnames[0]] == 'UNKNOWN FORMAT':
                 undated.append(i)
+                # undated_count += 1
+
+                if re.findall(pattern, i[self.fieldnames[1]]):
+                    print(i[self.fieldnames[1]])
+                    undated_count += 1
+
             else:
                 dated.append(i)
+                if re.findall(pattern, i[self.fieldnames[1]]):
+                    print(i[self.fieldnames[1]])
+                    dated_count += 1
+        print(f'dated: {dated_count}')
+        print(f'undated: {undated_count}')
         sorted_result = {'dated': dated, 'undated': undated}
 
 
@@ -152,7 +166,7 @@ class PhotoAnalysis:
         """group the dated entries by year when supplied a lod (list of dictionaries)"""
         years_dict = {}
         years = []
-        # print(lod)
+
         for e in lod['dated']:
             # for k, v in dictionary.items():
             year = e[self.fieldnames[0]][:4]
@@ -213,7 +227,7 @@ class PhotoAnalysis:
 
     def process_all_img(self, path):
         """retrieves date metadata if file is in HEIC format"""
-        print(path)
+
         r = {self.fieldnames[0]: 'UNKNOWN FORMAT', self.fieldnames[1]: path}
         try:
             img = Image.open(path)

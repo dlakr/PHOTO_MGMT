@@ -1,4 +1,4 @@
-from main import PhotoAnalysis as pa
+from RETRIEVE_AND_INDEX import PhotoAnalysis as pa
 import unittest
 class TestMain(unittest.TestCase):
 	def test_process_all_img(self):
