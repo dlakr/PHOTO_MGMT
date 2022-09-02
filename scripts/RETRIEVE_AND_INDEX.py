@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup
 import os
 import re
 import csv
+import json
 import pandas as pd
 import PIL
 from PIL import Image, ImageFile
@@ -11,6 +12,10 @@ from pillow_heif import register_heif_opener
 from PIL.ExifTags import TAGS
 import sys
 
+with open('format.json', 'r') as f:
+    formats = json.load(f)['formats']
+images = formats['images']
+videos = formats['video']
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 register_heif_opener()
 location = ''
@@ -101,7 +106,7 @@ class PhotoAnalysis:
             self.directory = input('Enter directory:')
             if self.directory == '':
                 self.directory = test_location
-                self.get_data(self.directory)
+                self.get_img_data(self.directory)
             if self.directory == 'e':
                 self.end_aquisition()
                 self.generate_report(self.sorted_result)
@@ -115,7 +120,7 @@ class PhotoAnalysis:
             elif self.directory == 'r':
                 self.end_aquisition()
             else:
-                self.get_data(self.directory)
+                self.get_img_data(self.directory)
         self.end_aquisition()
 
     def end_aquisition(self):
@@ -251,9 +256,18 @@ class PhotoAnalysis:
             r_os[self.fieldnames[0]] = 'Truncated File'
             return r_os
 
-    def get_data(self, directory):
+    def get_img_data(self, directory):
         """get absolute path of image file in the given formats"""
-        pattern = r'\.(jpg|jpeg|heic|png)$'
+
+        
+        # pattern = r'\.(jpg|jpeg|heic|png)$'
+        pattern = r'\.('
+        for index, value in enumerate(images):
+            if index < len(images):
+                pattern += f'{value}|'
+            else:
+                pattern += f'{value})$'
+        print(pattern)
         if os.path.exists(directory):
             for root, d_names, f_names in os.walk(directory):
 
@@ -262,11 +276,6 @@ class PhotoAnalysis:
                     ext = re.findall(pattern, str(file).lower())
                     if ext:
                         self.buffer.append(self.process_all_img(path))
-                        # if ext[0] == 'jpg' or ext[0] == 'bmp':
-                        #
-                        #     self.buffer.update(self.process_jpg_bmp(path))
-                        # elif ext[0] == 'heic':
-                        #     self.buffer.update(process_all_img(path))
 
                 self.write_csv(temp_csv_loc, self.buffer, size_dump=True)
         buff = self.remove_duplicate(self.read_csv(temp_csv_loc))

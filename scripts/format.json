@@ -1,0 +1,7 @@
+{
+  "formats":{
+    "video": ["mpg", "mp2", "mpeg", "mpe", "mpv", "gif", "gifv"],
+    "images": ["jpg", "jpeg", "heic", "png"]
+   }
+
+}
