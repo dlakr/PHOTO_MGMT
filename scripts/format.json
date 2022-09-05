@@ -1,6 +1,6 @@
 {
   "formats":{
-    "video": ["mpg", "mp2", "mpeg", "mpe", "mpv", "gif", "gifv"],
+    "videos": ["mpg", "mp2", "mpeg", "mpe", "mpv", "gif", "gifv", "mov"],
     "images": ["jpg", "jpeg", "heic", "png"]
    }
 

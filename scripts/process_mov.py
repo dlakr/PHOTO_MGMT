@@ -34,11 +34,11 @@ def get_mov_timestamps(filename):
             creation_time = struct.unpack('>I', f.read(4))[0] - EPOCH_ADJUSTER
             creation_time = DateTime.fromtimestamp(creation_time)
             if creation_time.year < 1990:  # invalid or censored data
-                creation_time = None
+                creation_time = "N/A"
 
             modification_time = struct.unpack('>I', f.read(4))[0] - EPOCH_ADJUSTER
             modification_time = DateTime.fromtimestamp(modification_time)
             if modification_time.year < 1990:  # invalid or censored data
-                modification_time = None
+                modification_time = "N/A"
 
     return creation_time, modification_time

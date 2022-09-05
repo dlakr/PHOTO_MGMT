@@ -15,18 +15,19 @@ import sys
 
 with open('format.json', 'r') as f:
     formats = json.load(f)['formats']
-all_formats = formats['images'] + formats['video']
+all_formats = formats['images'] + formats['videos']
 images = formats['images']
-videos = formats['video']
+videos = formats['videos']
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 register_heif_opener()
 location = ''
 temp_csv = 'temp.csv'
 temp_loc = os.path.abspath(os.path.join(os.getcwd(), '..', "temp_data"))
-
+temp_json_loc = os.path.join(temp_loc, 'temp.json')
 temp_csv_loc = os.path.join(temp_loc, temp_csv)
 
-test_location = r'F:\Dropbox\pictures_sorted\2009'
+# test_location = r'F:\Dropbox\pictures_sorted'
+test_location = r'C:\Users\DL\Desktop\2022-02-19'
 if os.name == 'nt':
     desktop = os.path.join(os.path.join(os.environ['USERPROFILE']), 'Desktop')
 else:
@@ -43,6 +44,7 @@ class PhotoAnalysis:
         self.directory = ''
         self.buffer = []
         self.counter = 0
+        self.open_type = 'w'
         self.fieldnames = ['METADATA', 'PATH']
         self.append = False
         self.dict_update = 0
@@ -73,12 +75,14 @@ class PhotoAnalysis:
             print('s = sort entries and output xlsx index')
             print('r = generate report (csv)')
             print('e = end aquiring process')
-            # print('xl = generate excel from csv ')
+            print('j = json')
+            print('t = test unit')
             print('q = quit')
             self.directory = input('Enter directory:')
             if self.directory == '':
                 self.directory = test_location
-                self.output_csv(temp_csv_loc, self.get_paths(self.directory), append=False)
+                self.get_paths(self.directory)
+                # self.output_csv(temp_csv_loc, self.buffer)
             if self.directory == 'e':
                 self.end_aquisition()
                 self.generate_report(self.sorted_result)
@@ -88,15 +92,21 @@ class PhotoAnalysis:
                 to_html = self.split_sorted_result_dated(self.sorted_result)
 
                 self.write_multipage_html(data=to_html)
-
+            elif self.directory == 'j':
+                js = self.csv_to_json(temp_csv_loc)
+                self.output_json(js, temp_json_loc)
             elif self.directory == 'r':
                 self.end_aquisition()
+            elif self.directory == "t":
+                break
             else:
-                self.output_csv(temp_csv_loc, self.get_paths(self.directory), append=False)
-        self.end_aquisition()
+                self.get_paths(self.directory)
+                # self.output_csv(temp_csv_loc, self.buffer)
+
+        # self.end_aquisition()
 
     def end_aquisition(self):
-        self.write_csv(temp_csv_loc, self.buffer, size_dump=False)
+        self.output_csv(temp_csv_loc, self.buffer, self.open_type)
 
         with open('dir_to_analyse.txt', 'w') as f:
             f.write(self.directory)
@@ -107,6 +117,28 @@ class PhotoAnalysis:
             result = list(reader)
             return result
 
+    def csv_to_json(self, csv_path):
+        """organises the paths by extension type, preparing them to have their metadata retrieved"""
+        files_dict = {'images': {}, 'videos': {}}
+        with open(csv_path, 'r') as f:
+            for line in f:
+                l = line.strip()
+                ext = os.path.splitext(l)[1][1:].lower()
+
+                if ext in images:
+                    if ext not in files_dict['images']:
+                        files_dict['images'].update({ext: {l: ext}})
+                    else:
+                        files_dict['images'][ext].update({l: ext})
+                else:
+                    if ext not in files_dict['videos']:
+                        files_dict['videos'].update({ext: {l: ext}})
+                    else:
+                        files_dict['videos'][ext].update({l: ext})
+        return files_dict
+
+
+    
     def sort_temp_csv(self):
         """sorts out entries by date to a desktop file and"""
         print('sorting')
@@ -139,24 +171,7 @@ class PhotoAnalysis:
 
         return sorted_result
 
-    def split_sorted_result_dated(self, lod):
-        """group the dated entries by year when supplied a lod (list of dictionaries)"""
-        years_dict = {}
-        years = []
 
-        for e in lod['dated']:
-            # for k, v in dictionary.items():
-            year = e[self.fieldnames[0]][:4]
-
-            if year not in years:
-                years.append(year)
-                years_dict[year] = [e]
-                self.html_addresses += self.append_year_address(year)
-            else:
-                years_dict[year].append(e)
-
-
-        return years_dict
 
 
     def append_year_address(self, year):
@@ -202,15 +217,24 @@ class PhotoAnalysis:
         self.dict_update = 1
         self.start_analysis()
 
-    def process_all_img(self, path):
-        """retrieves date metadata if file is in HEIC format"""
-        # parse trough files here and if the file
-        # extension is a video create a conditionnal
-        # that will leveraging the get_mov_timestamp function
+    def output_json(self, data, loc):
+        with open(loc, 'w') as f:
+            json.dump(data, f, indent=4)
 
-        r = {self.fieldnames[0]: 'UNKNOWN FORMAT', self.fieldnames[1]: path}
-        
-        try:
+    def load_json(self, path):
+        with open(path, 'r') as f:
+            js = json.load(f)
+        return js
+
+    def get_metadata(self, path):
+        """retrieves date metadata if file is in HEIC format"""
+        # the files are now stored in a json file
+
+        json_data = self.load_json(temp_json_loc)
+        # try:
+        #     for category, format in json_data.items():
+        #         for img, ext in format.items():
+
             img = Image.open(path)
             img_exif = img.getexif()
 
@@ -243,61 +267,83 @@ class PhotoAnalysis:
                 pattern += f'{value}|'
             else:
                 pattern += f'{value})$'
-
         if os.path.exists(directory):
-            for root, d_names, f_names in os.walk(directory):
+            count = 0
 
+            for root, d_names, f_names in os.walk(directory):
                 for file in f_names:
+                    count += 1
                     path = os.path.join(root,file)
                     ext = re.findall(pattern, str(file).lower())
                     if ext:
-                        self.buffer.append(self.process_all_img(path))
-                self.write_csv(temp_csv_loc, self.buffer, size_dump=True)
-        buff = self.remove_duplicate(self.read_csv(temp_csv_loc))
-        return buff
+                        self.buffer.append(path)
+                        if count == 1000:
+                            count = 0
+                            self.dict_update += 1
+                            if self.dict_update > 1:
+                                self.open_type = 'a'
+                            self.output_temp(temp_csv_loc, self.buffer, self.open_type)
 
+                self.output_temp(temp_csv_loc, self.buffer, self.open_type)
+
+        # buff = self.remove_duplicate(self.read_csv(temp_csv_loc))
+        # return buff
 
     def remove_duplicate(self, dictionary):
         new_list = [dict(t) for t in {tuple(d.items()) for d in dictionary}]
         return new_list
 
-    def output_csv(self, file_loc, buffer, append):
-        open_type = 'a'
-        if not append:
-            open_type = 'w'
-        with open(file_loc, open_type, encoding='UTF-8', newline='') as f:
-            writer = csv.DictWriter(f, fieldnames=self.fieldnames)
-            if open_type == 'w':
-                writer.writeheader()
+    def output_csv(self, file_loc, buffer, open_type):
+
+
+        with open(file_loc, open_type, encoding='UTF-8') as f:
+            # writer = csv.writer(f, delimiter=',')
             for i in buffer:
 
-                writer.writerow(i)
+                f.write(f'{i}\n')
             f.close()
-
-
 
     def output_temp(self, file_loc, buffer, append):
         self.output_csv(file_loc, buffer, append)
         self.buffer = []
         self.counter = 0
 
-    def write_csv(self, file_loc, dictionnary, size_dump):
-        if size_dump:
-            if sys.getsizeof(dictionnary) >= 10000:
-                self.dict_update += 1
-                if self.dict_update == 1:
-                    print('overwriting')
-                    self.append = False
-                else:
-                    print('appending')
-                    self.append = True
-                self.output_temp(file_loc, dictionnary, self.append)
-        else:
-            self.output_temp(file_loc, dictionnary, self.append)
+    # def write_csv(self, file_loc, dictionnary, size_dump):
+    #     if size_dump:
+    #         if sys.getsizeof(dictionnary) >= 10000:
+    #             self.dict_update += 1
+    #             if self.dict_update == 1:
+    #                 print('overwriting')
+    #                 self.append = False
+    #             else:
+    #                 print('appending')
+    #                 self.append = True
+    #             self.output_temp(file_loc, dictionnary, self.append)
+    #     else:
+    #         self.output_temp(file_loc, dictionnary, self.append)
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        # the dump is not linked buffer_dict size
-        self.write_csv(temp_csv_loc, self.buffer, size_dump=False)
+    # def __exit__(self, exc_type, exc_val, exc_tb):
+    #     # the dump is not linked buffer_dict size
+    #     self.write_csv(temp_csv_loc, self.buffer, size_dump=False)
+
+    def split_sorted_result_dated(self, lod):
+        """group the dated entries by year when supplied a lod (list of dictionaries)"""
+        years_dict = {}
+        years = []
+
+        for e in lod['dated']:
+            # for k, v in dictionary.items():
+            year = e[self.fieldnames[0]][:4]
+
+            if year not in years:
+                years.append(year)
+                years_dict[year] = [e]
+                self.html_addresses += self.append_year_address(year)
+            else:
+                years_dict[year].append(e)
+
+
+        return years_dict
 
     def write_html(self, name, data, headers):
         """writes out html page containing links to images"""
