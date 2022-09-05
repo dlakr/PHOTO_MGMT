@@ -5,6 +5,7 @@ import os
 import re
 import csv
 import json
+import ffmpeg
 import pandas as pd
 import PIL
 from PIL import Image, ImageFile
@@ -14,6 +15,7 @@ import sys
 
 with open('format.json', 'r') as f:
     formats = json.load(f)['formats']
+all_formats = formats['images'] + formats['video']
 images = formats['images']
 videos = formats['video']
 ImageFile.LOAD_TRUNCATED_IMAGES = True
@@ -60,38 +62,8 @@ class PhotoAnalysis:
         else:
             self.start_analysis()
 
-    def check_temp_csv(self, temp_csv_loc):
+    def check_temp_csv(self, temporary_csv_loc):
         """checks if temp_csv exists and returns its latest entry parent"""
-
-    def write_html(self, name, data, headers):
-        """writes out html page containing links to images"""
-        link = """<ul>
-        """
-        for i in data:
-
-            link = link + f"""<li><b>{i[headers[0]]}</b><a 
-            href="{i[headers[1]]}">{i[headers[1]]}
-            </a></li>\n"""
-        link += "</ul>"
-        html_folder = 'HTML'
-        soup = BeautifulSoup(link, 'html.parser')
-        if  not os.path.exists(os.path.join(output_folder, html_folder)):
-            os.mkdir(os.path.join(output_folder, html_folder))
-        output_loc = os.path.join(output_folder, html_folder, f"{name}.html")
-        with open(output_loc, "w", encoding='utf-8') as file:
-            file.write(str(soup.prettify()))
-
-    def write_multipage_html(self, data):
-        """writes html pages and indexes for entries in """
-        years = []
-        i_headers = ['disp', 'link']
-        for k, v in data.items():
-            self.write_html(name=k, data=v, headers=self.fieldnames)
-            years.append({i_headers[0]: k, i_headers[1]: f"{k}.html"})
-        self.write_html(name='INDEX', data=years, headers=i_headers)
-
-
-
 
     def start_analysis(self):
         """starts a new analysis at the given path"""
@@ -106,7 +78,7 @@ class PhotoAnalysis:
             self.directory = input('Enter directory:')
             if self.directory == '':
                 self.directory = test_location
-                self.get_img_data(self.directory)
+                self.output_csv(temp_csv_loc, self.get_paths(self.directory), append=False)
             if self.directory == 'e':
                 self.end_aquisition()
                 self.generate_report(self.sorted_result)
@@ -120,7 +92,7 @@ class PhotoAnalysis:
             elif self.directory == 'r':
                 self.end_aquisition()
             else:
-                self.get_img_data(self.directory)
+                self.output_csv(temp_csv_loc, self.get_paths(self.directory), append=False)
         self.end_aquisition()
 
     def end_aquisition(self):
@@ -232,8 +204,12 @@ class PhotoAnalysis:
 
     def process_all_img(self, path):
         """retrieves date metadata if file is in HEIC format"""
+        # parse trough files here and if the file
+        # extension is a video create a conditionnal
+        # that will leveraging the get_mov_timestamp function
 
         r = {self.fieldnames[0]: 'UNKNOWN FORMAT', self.fieldnames[1]: path}
+        
         try:
             img = Image.open(path)
             img_exif = img.getexif()
@@ -256,18 +232,18 @@ class PhotoAnalysis:
             r_os[self.fieldnames[0]] = 'Truncated File'
             return r_os
 
-    def get_img_data(self, directory):
+    def get_paths(self, directory):
         """get absolute path of image file in the given formats"""
 
-        
         # pattern = r'\.(jpg|jpeg|heic|png)$'
         pattern = r'\.('
-        for index, value in enumerate(images):
-            if index < len(images):
+        for index, value in enumerate(all_formats):
+            if index < len(all_formats)-1:
+
                 pattern += f'{value}|'
             else:
                 pattern += f'{value})$'
-        print(pattern)
+
         if os.path.exists(directory):
             for root, d_names, f_names in os.walk(directory):
 
@@ -276,16 +252,16 @@ class PhotoAnalysis:
                     ext = re.findall(pattern, str(file).lower())
                     if ext:
                         self.buffer.append(self.process_all_img(path))
-
                 self.write_csv(temp_csv_loc, self.buffer, size_dump=True)
         buff = self.remove_duplicate(self.read_csv(temp_csv_loc))
-        self.output(temp_csv_loc, buff, append=False)
+        return buff
+
 
     def remove_duplicate(self, dictionary):
         new_list = [dict(t) for t in {tuple(d.items()) for d in dictionary}]
         return new_list
 
-    def output(self, file_loc, buffer, append):
+    def output_csv(self, file_loc, buffer, append):
         open_type = 'a'
         if not append:
             open_type = 'w'
@@ -298,8 +274,10 @@ class PhotoAnalysis:
                 writer.writerow(i)
             f.close()
 
+
+
     def output_temp(self, file_loc, buffer, append):
-        self.output(file_loc, buffer, append)
+        self.output_csv(file_loc, buffer, append)
         self.buffer = []
         self.counter = 0
 
@@ -318,7 +296,36 @@ class PhotoAnalysis:
             self.output_temp(file_loc, dictionnary, self.append)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self.write_csv(temp_csv_loc, self.buffer, size_dump=False)# the dump is not linked budder_dict size
+        # the dump is not linked buffer_dict size
+        self.write_csv(temp_csv_loc, self.buffer, size_dump=False)
 
+    def write_html(self, name, data, headers):
+        """writes out html page containing links to images"""
+        link = """<ul>
+        """
+        for i in data:
+
+            link = link + f"""<li><b>{i[headers[0]]}</b><a 
+            href="{i[headers[1]]}">{i[headers[1]]}
+            </a></li>\n"""
+        link += "</ul>"
+        html_folder = 'HTML'
+        soup = BeautifulSoup(link, 'html.parser')
+        if  not os.path.exists(os.path.join(output_folder, html_folder)):
+            os.mkdir(os.path.join(output_folder, html_folder))
+        output_loc = os.path.join(output_folder, html_folder, f"{name}.html")
+        with open(output_loc, "w", encoding='utf-8') as file:
+            file.write(str(soup.prettify()))
+
+    def write_multipage_html(self, data):
+        """writes html pages and indexes for entries in """
+        years = []
+        i_headers = ['disp', 'link']
+        for k, v in data.items():
+            self.write_html(name=k, data=v, headers=self.fieldnames)
+            years.append({i_headers[0]: k, i_headers[1]: f"{k}.html"})
+        self.write_html(name='INDEX', data=years, headers=i_headers)
+        
+        
 if __name__ == "__main__":
     pa = PhotoAnalysis()
