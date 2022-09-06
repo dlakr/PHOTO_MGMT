@@ -5,6 +5,8 @@ import os
 import re
 import csv
 import json
+import concurrent.futures
+import logging
 import ffmpeg
 import pandas as pd
 import PIL
@@ -88,10 +90,13 @@ class PhotoAnalysis:
                 self.generate_report(self.sorted_result)
             elif self.directory == 's':
                 self.end_aquisition()
-                self.sorted_result = self.sort_temp_csv()
-                to_html = self.split_sorted_result_dated(self.sorted_result)
+                data = self.thread_metadata(self.get_metadata(temp_json_loc))
 
-                self.write_multipage_html(data=to_html)
+                # self.sorted_result = self.sort_by_date(data)
+                # self.sorted_result = self.sort_temp_csv()
+                # to_html = self.split_sorted_result_dated(self.sorted_result)
+
+                # self.write_multipage_html(data=to_html)
             elif self.directory == 'j':
                 js = self.csv_to_json(temp_csv_loc)
                 self.output_json(js, temp_json_loc)
@@ -139,37 +144,43 @@ class PhotoAnalysis:
 
 
     
-    def sort_temp_csv(self):
-        """sorts out entries by date to a desktop file and"""
-        print('sorting')
+    # def sort_temp_csv(self):
+    #     """sorts out entries by date to a desktop file and"""
+    #     print('sorting')
+    #
+    #     data = self.read_csv(temp_csv_loc)
+    #     sorted_list = sorted(data, key=lambda d: d[self.fieldnames[0]])
+    #     undated = []
+    #     dated = []
+    #     undated_count = 0
+    #     dated_count = 0
+    #     pattern = r'^.*(\.photoslibrary\/originals)'
+    #     for i in sorted_list:
+    #         if i[self.fieldnames[0]] == '-not_dated-' or i[self.fieldnames[0]] == 'UNKNOWN FORMAT':
+    #             undated.append(i)
+    #             # undated_count += 1
+    #
+    #             if re.findall(pattern, i[self.fieldnames[1]]):
+    #                 print(i[self.fieldnames[1]])
+    #                 undated_count += 1
+    #
+    #         else:
+    #             dated.append(i)
+    #             if re.findall(pattern, i[self.fieldnames[1]]):
+    #                 print(i[self.fieldnames[1]])
+    #                 dated_count += 1
+    #     print(f'dated: {dated_count}')
+    #     print(f'undated: {undated_count}')
+    #     sorted_result = {'dated': dated, 'undated': undated}
+    #
+    #     return sorted_result
+    def thread_metadata(self,func):
+        format = "%(asctime)s: %(message)s"
+        logging.basicConfig(format=format, level=logging.INFO,
+                            datefmt="%H:%M:%S")
 
-        data = self.read_csv(temp_csv_loc)
-        sorted_list = sorted(data, key=lambda d: d[self.fieldnames[0]])
-        undated = []
-        dated = []
-        undated_count = 0
-        dated_count = 0
-        pattern = r'^.*(\.photoslibrary\/originals)'
-        for i in sorted_list:
-            if i[self.fieldnames[0]] == '-not_dated-' or i[self.fieldnames[0]] == 'UNKNOWN FORMAT':
-                undated.append(i)
-                # undated_count += 1
-
-                if re.findall(pattern, i[self.fieldnames[1]]):
-                    print(i[self.fieldnames[1]])
-                    undated_count += 1
-
-            else:
-                dated.append(i)
-                if re.findall(pattern, i[self.fieldnames[1]]):
-                    print(i[self.fieldnames[1]])
-                    dated_count += 1
-        print(f'dated: {dated_count}')
-        print(f'undated: {undated_count}')
-        sorted_result = {'dated': dated, 'undated': undated}
-
-
-        return sorted_result
+        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+            executor.map(func, range(8))
 
 
 
@@ -230,31 +241,81 @@ class PhotoAnalysis:
         """retrieves date metadata if file is in HEIC format"""
         # the files are now stored in a json file
 
-        json_data = self.load_json(temp_json_loc)
-        # try:
-        #     for category, format in json_data.items():
-        #         for img, ext in format.items():
+        date = '-not_dated-'
+        year = 'n/a'
+        json_data = self.load_json(path)
+        paths_by_year = {}
+        error_log = []
+        for category, format in json_data.items():
 
-            img = Image.open(path)
-            img_exif = img.getexif()
+            for ext, element in format.items():
+                for path, extension in element.items():
 
-            if img_exif:
-                exif = {TAGS[k]:v for k, v in img_exif.items() if k in TAGS and type(v) is not bytes}
-                pattern = r'\d{4}:\d{2}:\d{2} \d{2}:\d{2}:\d{2}'
-                exif_date = re.findall(pattern, str(exif.get('DateTime')))
-                if exif_date:
-                    date = exif_date[0]
-                else:
-                    date = '-not_dated-'
-            else:
-                date = '-not_dated-'
-            return {self.fieldnames[0]: date, self.fieldnames[1]: path}
-        except PIL.UnidentifiedImageError as error:
-            return r
-        except OSError as error:
-            r_os = r
-            r_os[self.fieldnames[0]] = 'Truncated File'
-            return r_os
+                    if ext in images:
+                        try:
+                            img = Image.open(path)
+                            img_exif = img.getexif()
+
+                            if img_exif:
+                                exif = {TAGS[k]:v for k, v in img_exif.items() if k in TAGS and type(v) is not bytes}
+                                pattern = r'((\d{4}):\d{2}:\d{2} \d{2}:\d{2}:\d{2})'
+                                exif_date = re.findall(pattern, str(exif.get('DateTime')))
+                                # print(f"date: {exif_date}\npath:{path}")
+                                if exif_date:
+
+                                    date = exif_date[0][0]
+                                    year = exif_date[0][1]
+                                else:
+                                    date = '-not_dated-'
+                                    year = 'n/a'
+                            # return {self.fieldnames[0]: date, self.fieldnames[1]: path}
+                            else:
+                                date = '-not_dated-'
+                                year = 'n/a'
+                        except PIL.UnidentifiedImageError as error:
+                            error = f'PIL.UnidentifiedImageError: {path}'
+                            error_log.append(error)
+                            date = '-not_dated-'
+                            year = 'n/a'
+                        except OSError as error:
+                            error = f'OSError: {path}'
+                            error_log.append(error)
+                            date = '-not_dated-'
+                            year = 'n/a'
+                    elif ext == 'mov':
+                        "use process mov to retrieve the date"
+                        date = '-not_dated-'
+                        year = 'n/a'
+
+
+                    else:
+                        "these format is not yet set to have its metadata retrieved"
+                        year = 'n/a'
+                        date = '-not_dated-'
+                    if year not in paths_by_year:
+                        paths_by_year.update({year: [(date, path)]})
+                    else:
+                        paths_by_year[year].append((date, path))
+
+        result = self.sort_by_date(paths_by_year)
+
+        return result
+
+    def sort_by_date(self, obj):
+        """sorts a given dictionary and returns a sorted json object"""
+        dictionary = obj
+        if type(obj) == str:
+            with open(obj, 'r') as f:
+                dictionary = json.load(f)
+        sorted_tup = sorted(dictionary.items())
+        result_dict = {}
+        result_tup = sorted(sorted_tup, key = lambda x: x[1])
+        for i in result_tup:
+            result_dict.update({i[0]: dict((y, x) for x, y in i[1])})
+        result = json.dumps(result_dict, indent=4)
+        print(f'to json: {result}')
+        return result
+
 
     def get_paths(self, directory):
         """get absolute path of image file in the given formats"""
@@ -289,9 +350,9 @@ class PhotoAnalysis:
         # buff = self.remove_duplicate(self.read_csv(temp_csv_loc))
         # return buff
 
-    def remove_duplicate(self, dictionary):
-        new_list = [dict(t) for t in {tuple(d.items()) for d in dictionary}]
-        return new_list
+    # def remove_duplicate(self, dictionary):
+    #     new_list = [dict(t) for t in {tuple(d.items()) for d in dictionary}]
+    #     return new_list
 
     def output_csv(self, file_loc, buffer, open_type):
 
@@ -308,24 +369,6 @@ class PhotoAnalysis:
         self.buffer = []
         self.counter = 0
 
-    # def write_csv(self, file_loc, dictionnary, size_dump):
-    #     if size_dump:
-    #         if sys.getsizeof(dictionnary) >= 10000:
-    #             self.dict_update += 1
-    #             if self.dict_update == 1:
-    #                 print('overwriting')
-    #                 self.append = False
-    #             else:
-    #                 print('appending')
-    #                 self.append = True
-    #             self.output_temp(file_loc, dictionnary, self.append)
-    #     else:
-    #         self.output_temp(file_loc, dictionnary, self.append)
-
-    # def __exit__(self, exc_type, exc_val, exc_tb):
-    #     # the dump is not linked buffer_dict size
-    #     self.write_csv(temp_csv_loc, self.buffer, size_dump=False)
-
     def split_sorted_result_dated(self, lod):
         """group the dated entries by year when supplied a lod (list of dictionaries)"""
         years_dict = {}
@@ -341,8 +384,6 @@ class PhotoAnalysis:
                 self.html_addresses += self.append_year_address(year)
             else:
                 years_dict[year].append(e)
-
-
         return years_dict
 
     def write_html(self, name, data, headers):
