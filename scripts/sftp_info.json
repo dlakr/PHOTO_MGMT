@@ -1,0 +1,9 @@
+{
+  "ip": "165.228.167.53",
+  "username": "anguswallace",
+  "path_to_key": "C:\\Users\\DL\\.ssh\\ssh_key",
+  "remote_loc": "/volumes/2022_backup",
+  "local_loc": "C:\\Users\\DL\\Desktop\\temp\\",
+  "direction": ["local", "remote"],
+  "port": "2226"
+}

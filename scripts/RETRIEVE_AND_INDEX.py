@@ -7,6 +7,7 @@ import csv
 import json
 import concurrent.futures
 import logging
+import shutil
 import ffmpeg
 import pandas as pd
 import PIL
@@ -14,7 +15,7 @@ from PIL import Image, ImageFile
 from pillow_heif import register_heif_opener
 from PIL.ExifTags import TAGS
 import sys
-
+from ssh_connection import connection
 with open('format.json', 'r') as f:
     formats = json.load(f)['formats']
 all_formats = formats['images'] + formats['videos']
@@ -43,6 +44,9 @@ except FileExistsError as error:
 class PhotoAnalysis:
 
     def __init__(self):
+        self.ssh = connection()
+        self.sftp = self.ssh.open_sftp()
+
         self.directory = ''
         self.buffer = []
         self.counter = 0
@@ -79,22 +83,23 @@ class PhotoAnalysis:
             print('e = end aquiring process')
             print('j = json')
             print('t = test unit')
+            print('c = copy originals ')
             print('q = quit')
             self.directory = input('Enter directory:')
             if self.directory == '':
                 self.directory = test_location
                 self.get_paths(self.directory)
                 # self.output_csv(temp_csv_loc, self.buffer)
+
             if self.directory == 'e':
                 self.end_aquisition()
                 self.generate_report(self.sorted_result)
             elif self.directory == 's':
                 self.end_aquisition()
                 data = self.thread_metadata(self.get_metadata(temp_json_loc))
+            elif self.directory == 'c':
+                self.thread_metadata(self.copy_originals())
 
-                # self.sorted_result = self.sort_by_date(data)
-                # self.sorted_result = self.sort_temp_csv()
-                # to_html = self.split_sorted_result_dated(self.sorted_result)
 
                 # self.write_multipage_html(data=to_html)
             elif self.directory == 'j':
@@ -105,7 +110,8 @@ class PhotoAnalysis:
             elif self.directory == "t":
                 break
             else:
-                self.get_paths(self.directory)
+                directory = self.sftp.chdir(self.directory)
+                self.get_paths(directory)
                 # self.output_csv(temp_csv_loc, self.buffer)
 
         # self.end_aquisition()
@@ -140,6 +146,7 @@ class PhotoAnalysis:
                         files_dict['videos'].update({ext: {l: ext}})
                     else:
                         files_dict['videos'][ext].update({l: ext})
+
         return files_dict
 
 
@@ -335,6 +342,7 @@ class PhotoAnalysis:
                 for file in f_names:
                     count += 1
                     path = os.path.join(root,file)
+                    print(path)
                     ext = re.findall(pattern, str(file).lower())
                     if ext:
                         self.buffer.append(path)
@@ -355,8 +363,6 @@ class PhotoAnalysis:
     #     return new_list
 
     def output_csv(self, file_loc, buffer, open_type):
-
-
         with open(file_loc, open_type, encoding='UTF-8') as f:
             # writer = csv.writer(f, delimiter=',')
             for i in buffer:
@@ -368,6 +374,23 @@ class PhotoAnalysis:
         self.output_csv(file_loc, buffer, append)
         self.buffer = []
         self.counter = 0
+
+    def copy_originals(self):
+
+        """copy files to folder"""
+        dic = {}
+        path = os.path.join(temp_loc, 'temp.csv')
+        with open(path, 'r', encoding='utf-8') as f:
+            reader = csv.reader(f)
+            print(reader)
+            for i in reader:
+                i = i[0]
+                dic[i] = os.path.basename(i)
+        for k, v in dic.items():
+            dest = os.path.join(output_folder, v)
+            shutil.copy(k, dest)
+
+
 
     def split_sorted_result_dated(self, lod):
         """group the dated entries by year when supplied a lod (list of dictionaries)"""
