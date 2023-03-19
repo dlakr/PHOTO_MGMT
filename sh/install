@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 name=$(logname)
-MGMT_PATH=/etc/sudoers.d/mgmt
+MGMT_PATH=/etc/sudoers.d/photos
 CMD="/usr/bin/tmutil, /usr/sbin/softwareupdate, /usr/bin/pmset"
 SUDOERS="$name ALL = (ALL) NOPASSWD: $CMD"
 touch $MGMT_PATH
-
+#todo: sudoers.d must be modified, might be easier with python
+#python read, modify/add and write back in the file at the same place.
+#syntax: python /path/to/file
 sudo chown -R root $MGMT_PATH
 sudo chmod -R 755 $MGMT_PATH
 sudo echo "$SUDOERS" > $MGMT_PATH
