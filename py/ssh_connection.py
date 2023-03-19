@@ -34,7 +34,7 @@ def connection():
         # ssh_client = paramiko.SSHClient()
     ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ssh_client.connect(remote_ip, username=username, key_filename=path_to_key, port=port)
-    return ssh_client
+
         # with ssh_client.open_sftp() as sftp_client:
         #     sftp_client.chdir(remote)
         #     if direction == info["direction"][0]:
@@ -52,6 +52,6 @@ def connection():
         #                 sftp_client.put(file, os.path.basename(file))# not working yet
         #         except OSError as error:
         #             print(f'skipped {lc}')
-
+    return ssh_client
 ssh_c = connection()
 
