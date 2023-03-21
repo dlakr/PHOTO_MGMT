@@ -1,0 +1,303 @@
+
+          Serial Number: 09019b94241dab661b42b68811cdb21be1ef6b10fb0d9fbfea3a299b01f6ee89423d000000000000000000008a20c71600914c20815581073cac05ec
+              Serial Number: CC2D1W036XDGFKL0
+          Serial Number: 010169a4be8fdf6d306ec2bd415738e87e15a00fd10f598ee6cf4c0c30feac7e48e9000000000000000000007cf69f220000470081558107542cb56a
+              Serial Number: CC2D1W036XDGFKL0
+USB:
+
+    USB 3.0 Bus:
+
+      Host Controller Driver: AppleUSBXHCIPPT
+      PCI Device ID: 0x1e31 
+      PCI Revision ID: 0x0004 
+      PCI Vendor ID: 0x8086 
+
+         SanDisk 3.2Gen1:
+
+          Product ID: 0x5581
+          Vendor ID: 0x0781  (SanDisk Corporation)
+          Version: 1.00
+          Serial Number: 010169a4be8fdf6d306ec2bd415738e87e15a00fd10f598ee6cf4c0c30feac7e48e9000000000000000000007cf69f220000470081558107542cb56a
+          Speed: Up to 5 Gb/s
+          Manufacturer:  USB
+          Location ID: 0x14300000 / 14
+          Current Available (mA): 900
+          Current Required (mA): 896
+          Extra Operating Current (mA): 0
+          Media:
+            SanDisk 3.2Gen1:
+              Capacity: 30.77 GB (30,765,219,840 bytes)
+              Removable Media: Yes
+              BSD Name: disk3
+              Logical Unit: 0
+              Partition Map Type: MBR (Master Boot Record)
+              S.M.A.R.T. status: Verified
+              USB Interface: 0
+              Volumes:
+                mac_programs:
+                  Capacity: 30.77 GB (30,765,203,456 bytes)
+                  Free: 24.2 GB (24,199,061,504 bytes)
+                  Writable: Yes
+                  File System: Journaled HFS+
+                  BSD Name: disk3s1
+                  Mount Point: /Volumes/mac_programs
+                  Content: Apple_HFS
+                  Volume UUID: 2B21AC23-906F-3035-BA40-AA9000253E69
+
+    USB 2.0 Bus:
+
+      Host Controller Driver: AppleUSBEHCIPCI
+      PCI Device ID: 0x1e26 
+      PCI Revision ID: 0x0004 
+      PCI Vendor ID: 0x8086 
+
+        Hub:
+
+          Product ID: 0x0024
+          Vendor ID: 0x8087  (Intel Corporation)
+          Version: 0.00
+          Speed: Up to 480 Mb/s
+          Location ID: 0x1d100000 / 1
+          Current Available (mA): 500
+          Current Required (mA): 0
+          Extra Operating Current (mA): 0
+          Built-In: Yes
+
+            Hub:
+
+              Product ID: 0x2513
+              Vendor ID: 0x0424  (SMSC)
+              Version: b.b3
+              Speed: Up to 480 Mb/s
+              Location ID: 0x1d180000 / 2
+              Current Available (mA): 500
+              Current Required (mA): 2
+              Extra Operating Current (mA): 0
+              Built-In: Yes
+
+                Apple Internal Keyboard / Trackpad:
+
+                  Product ID: 0x0252
+                  Vendor ID: 0x05ac (Apple Inc.)
+                  Version: 2.19
+                  Speed: Up to 12 Mb/s
+                  Manufacturer: Apple Inc.
+                  Location ID: 0x1d183000 / 4
+                  Current Available (mA): 500
+                  Current Required (mA): 40
+                  Extra Operating Current (mA): 0
+                  Built-In: Yes
+
+                IR Receiver:
+
+                  Product ID: 0x8242
+                  Vendor ID: 0x05ac (Apple Inc.)
+                  Version: 0.16
+                  Speed: Up to 1.5 Mb/s
+                  Manufacturer: Apple Computer, Inc.
+                  Location ID: 0x1d182000 / 5
+                  Current Available (mA): 500
+                  Current Required (mA): 100
+                  Extra Operating Current (mA): 0
+                  Built-In: Yes
+
+                BRCM20702 Hub:
+
+                  Product ID: 0x4500
+                  Vendor ID: 0x0a5c  (Broadcom Corp.)
+                  Version: 1.00
+                  Manufacturer: Apple Inc.
+                  Location ID: 0x1d181000
+
+                    Bluetooth USB Host Controller:
+
+                      Product ID: 0x821d
+                      Vendor ID: 0x05ac (Apple Inc.)
+                      Version: 1.56
+                      Manufacturer: Apple Inc.
+                      Location ID: 0x1d181300
+
+    USB 2.0 Bus:
+
+      Host Controller Driver: AppleUSBEHCIPCI
+      PCI Device ID: 0x1e2d 
+      PCI Revision ID: 0x0004 
+      PCI Vendor ID: 0x8086 
+
+        Hub:
+
+          Product ID: 0x0024
+          Vendor ID: 0x8087  (Intel Corporation)
+          Version: 0.00
+          Speed: Up to 480 Mb/s
+          Location ID: 0x1a100000 / 1
+          Current Available (mA): 500
+          Current Required (mA): 0
+          Extra Operating Current (mA): 0
+          Built-In: Yes
+
+            FaceTime HD Camera (Built-in):
+
+              Product ID: 0x8509
+              Vendor ID: 0x05ac (Apple Inc.)
+              Version: 5.16
+              Serial Number: CC2D1W036XDGFKL0
+              Speed: Up to 480 Mb/s
+              Manufacturer: Apple Inc.
+              Location ID: 0x1a110000 / 2
+              Current Available (mA): 500
+              Current Required (mA): 500
+              Extra Operating Current (mA): 0
+              Built-In: Yes
+
+USB:
+
+    USB 3.0 Bus:
+
+      Host Controller Driver: AppleUSBXHCIPPT
+      PCI Device ID: 0x1e31 
+      PCI Revision ID: 0x0004 
+      PCI Vendor ID: 0x8086 
+
+         SanDisk 3.2Gen1:
+
+          Product ID: 0x5581
+          Vendor ID: 0x0781  (SanDisk Corporation)
+          Version: 1.00
+          Serial Number: 010169a4be8fdf6d306ec2bd415738e87e15a00fd10f598ee6cf4c0c30feac7e48e9000000000000000000007cf69f220000470081558107542cb56a
+          Speed: Up to 5 Gb/s
+          Manufacturer:  USB
+          Location ID: 0x14300000 / 14
+          Current Available (mA): 900
+          Current Required (mA): 896
+          Extra Operating Current (mA): 0
+          Media:
+            SanDisk 3.2Gen1:
+              Capacity: 30.77 GB (30,765,219,840 bytes)
+              Removable Media: Yes
+              BSD Name: disk3
+              Logical Unit: 0
+              Partition Map Type: MBR (Master Boot Record)
+              S.M.A.R.T. status: Verified
+              USB Interface: 0
+              Volumes:
+                mac_programs:
+                  Capacity: 30.77 GB (30,765,203,456 bytes)
+                  Free: 24.2 GB (24,199,061,504 bytes)
+                  Writable: Yes
+                  File System: Journaled HFS+
+                  BSD Name: disk3s1
+                  Mount Point: /Volumes/mac_programs
+                  Content: Apple_HFS
+                  Volume UUID: 2B21AC23-906F-3035-BA40-AA9000253E69
+
+    USB 2.0 Bus:
+
+      Host Controller Driver: AppleUSBEHCIPCI
+      PCI Device ID: 0x1e26 
+      PCI Revision ID: 0x0004 
+      PCI Vendor ID: 0x8086 
+
+        Hub:
+
+          Product ID: 0x0024
+          Vendor ID: 0x8087  (Intel Corporation)
+          Version: 0.00
+          Speed: Up to 480 Mb/s
+          Location ID: 0x1d100000 / 1
+          Current Available (mA): 500
+          Current Required (mA): 0
+          Extra Operating Current (mA): 0
+          Built-In: Yes
+
+            Hub:
+
+              Product ID: 0x2513
+              Vendor ID: 0x0424  (SMSC)
+              Version: b.b3
+              Speed: Up to 480 Mb/s
+              Location ID: 0x1d180000 / 2
+              Current Available (mA): 500
+              Current Required (mA): 2
+              Extra Operating Current (mA): 0
+              Built-In: Yes
+
+                Apple Internal Keyboard / Trackpad:
+
+                  Product ID: 0x0252
+                  Vendor ID: 0x05ac (Apple Inc.)
+                  Version: 2.19
+                  Speed: Up to 12 Mb/s
+                  Manufacturer: Apple Inc.
+                  Location ID: 0x1d183000 / 4
+                  Current Available (mA): 500
+                  Current Required (mA): 40
+                  Extra Operating Current (mA): 0
+                  Built-In: Yes
+
+                IR Receiver:
+
+                  Product ID: 0x8242
+                  Vendor ID: 0x05ac (Apple Inc.)
+                  Version: 0.16
+                  Speed: Up to 1.5 Mb/s
+                  Manufacturer: Apple Computer, Inc.
+                  Location ID: 0x1d182000 / 5
+                  Current Available (mA): 500
+                  Current Required (mA): 100
+                  Extra Operating Current (mA): 0
+                  Built-In: Yes
+
+                BRCM20702 Hub:
+
+                  Product ID: 0x4500
+                  Vendor ID: 0x0a5c  (Broadcom Corp.)
+                  Version: 1.00
+                  Manufacturer: Apple Inc.
+                  Location ID: 0x1d181000
+
+                    Bluetooth USB Host Controller:
+
+                      Product ID: 0x821d
+                      Vendor ID: 0x05ac (Apple Inc.)
+                      Version: 1.56
+                      Manufacturer: Apple Inc.
+                      Location ID: 0x1d181300
+
+    USB 2.0 Bus:
+
+      Host Controller Driver: AppleUSBEHCIPCI
+      PCI Device ID: 0x1e2d 
+      PCI Revision ID: 0x0004 
+      PCI Vendor ID: 0x8086 
+
+        Hub:
+
+          Product ID: 0x0024
+          Vendor ID: 0x8087  (Intel Corporation)
+          Version: 0.00
+          Speed: Up to 480 Mb/s
+          Location ID: 0x1a100000 / 1
+          Current Available (mA): 500
+          Current Required (mA): 0
+          Extra Operating Current (mA): 0
+          Built-In: Yes
+
+            FaceTime HD Camera (Built-in):
+
+              Product ID: 0x8509
+              Vendor ID: 0x05ac (Apple Inc.)
+              Version: 5.16
+              Serial Number: CC2D1W036XDGFKL0
+              Speed: Up to 480 Mb/s
+              Manufacturer: Apple Inc.
+              Location ID: 0x1a110000 / 2
+              Current Available (mA): 500
+              Current Required (mA): 500
+              Extra Operating Current (mA): 0
+              Built-In: Yes
+
+              Serial Number: CC2D1W036XDGFKL0
+          Serial Number: 010169a4be8fdf6d306ec2bd415738e87e15a00fd10f598ee6cf4c0c30feac7e48e9000000000000000000007cf69f220000470081558107542cb56a
+              Serial Number: CC2D1W036XDGFKL0
+              Serial Number: CC2D1W036XDGFKL0

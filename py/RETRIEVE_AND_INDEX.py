@@ -15,7 +15,6 @@ from PIL import Image, ImageFile
 from pillow_heif import register_heif_opener
 from PIL.ExifTags import TAGS
 import sys
-from ssh_connection import connection
 with open('format.json', 'r') as f:
     formats = json.load(f)['formats']
 all_formats = formats['images'] + formats['videos']
@@ -44,11 +43,10 @@ except FileExistsError as error:
 class PhotoAnalysis:
 
     def __init__(self):
-        self.ssh = connection()
-        self.sftp = self.ssh.open_sftp()
 
         self.directory = ''
         self.buffer = []
+        self.buffer_json = {}
         self.counter = 0
         self.open_type = 'w'
         self.fieldnames = ['METADATA', 'PATH']
@@ -324,43 +322,68 @@ class PhotoAnalysis:
         return result
 
 
-    def get_paths(self, directory):
+    # def get_paths(self, directory):
+    #     """get absolute path of image file in the given formats"""
+    #
+    #     # pattern = r'\.(jpg|jpeg|heic|png)$'
+    #     pattern = r'\.('
+    #     for index, value in enumerate(all_formats):
+    #         if index < len(all_formats)-1:
+    #
+    #             pattern += f'{value}|'
+    #         else:
+    #             pattern += f'{value})$'
+    #     if os.path.exists(directory):
+    #         count = 0
+    #
+    #         for root, d_names, f_names in os.walk(directory):
+    #             for file in f_names:
+    #                 count += 1
+    #                 path = os.path.join(root,file)
+    #                 print(path)
+    #                 ext = re.findall(pattern, str(file).lower())
+    #                 if ext:
+    #                     self.buffer.append(path)
+    #                     if count == 1000:
+    #                         count = 0
+    #                         self.dict_update += 1
+    #                         if self.dict_update > 1:
+    #                             self.open_type = 'a'
+    #                         self.output_temp(temp_csv_loc, self.buffer, self.open_type)
+    #
+    #
+    #             self.output_temp(temp_csv_loc, self.buffer, self.open_type)
+
+    def get_paths_to_json(self, volume):
         """get absolute path of image file in the given formats"""
 
         # pattern = r'\.(jpg|jpeg|heic|png)$'
         pattern = r'\.('
         for index, value in enumerate(all_formats):
-            if index < len(all_formats)-1:
+            if index < len(all_formats) - 1:
 
                 pattern += f'{value}|'
             else:
                 pattern += f'{value})$'
-        if os.path.exists(directory):
+        if os.path.exists(volume):
             count = 0
 
-            for root, d_names, f_names in os.walk(directory):
+            for root, d_names, f_names in os.walk(volume):
                 for file in f_names:
                     count += 1
-                    path = os.path.join(root,file)
+                    path = os.path.join(root, file)
                     print(path)
                     ext = re.findall(pattern, str(file).lower())
                     if ext:
-                        self.buffer.append(path)
+                        self.update_json(path)
+                        self.buffer_json.update(path)
                         if count == 1000:
                             count = 0
                             self.dict_update += 1
-                            if self.dict_update > 1:
-                                self.open_type = 'a'
-                            self.output_temp(temp_csv_loc, self.buffer, self.open_type)
 
-                self.output_temp(temp_csv_loc, self.buffer, self.open_type)
+                            self.write_json(temp_csv_loc, self.buffer)
 
-        # buff = self.remove_duplicate(self.read_csv(temp_csv_loc))
-        # return buff
 
-    # def remove_duplicate(self, dictionary):
-    #     new_list = [dict(t) for t in {tuple(d.items()) for d in dictionary}]
-    #     return new_list
 
     def output_csv(self, file_loc, buffer, open_type):
         with open(file_loc, open_type, encoding='UTF-8') as f:
@@ -370,14 +393,63 @@ class PhotoAnalysis:
                 f.write(f'{i}\n')
             f.close()
 
+
+
+    def update_json(self, file_path):
+        vol_name = os.path.split(file_path)[0].split('/')[2]
+        dic = {vol_name: {file_path: False}}
+
+        return dic
+
     def output_temp(self, file_loc, buffer, append):
         self.output_csv(file_loc, buffer, append)
         self.buffer = []
         self.counter = 0
 
+
+    def write_json(self, file_loc, buffer):
+        with open(file_loc, "r+", encoding='UTF-8') as file:
+            data = json.load(file)
+            data.append(buffer)
+            json.dump(data, file_loc, indent=4)
+            f.close()
+
+        self.buffer_json = {}
+        self.counter = 0
+
     def copy_originals(self):
 
         """copy files to folder"""
+        #todo: the copyer has to keep track of progress in the in_progress.json file
+        # it first has to copy the json map related to the guid as the in_progress.json
+        # if the in_progress is not complete it has to be saved back under the original
+        # device guid-named file - json command might need fixing to create a deeper tree (see below example)
+        deeper_tree = {
+
+            "volume_name": {
+
+                "not_copied": {
+
+                    "images": {
+                        "jpg": {
+                            "C:\\Users\\DL\\Desktop\\2022-02-19\\2022-02-19 15.48.58.jpg": "jpg",
+                            "C:\\Users\\DL\\Desktop\\2022-02-19\\no\u00c3\u00abl 2008 066.jpg": "jpg"
+                        },
+                        "heic": {
+                            "C:\\Users\\DL\\Desktop\\2022-02-19\\IMG_4742.HEIC": "heic"
+                        },
+                        "png": {
+                            "C:\\Users\\DL\\Desktop\\2022-02-19\\Screenshot 2022-08-26 113338.png": "png"
+                        }
+                    },
+                    "videos": {
+                        "mov": {
+                            "C:\\Users\\DL\\Desktop\\2022-02-19\\2021-07-01 13.39.09.mov": "mov"
+                        }
+                    }
+                }
+            }
+        }
         dic = {}
         path = os.path.join(temp_loc, 'temp.csv')
         with open(path, 'r', encoding='utf-8') as f:

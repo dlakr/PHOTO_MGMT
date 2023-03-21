@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
-name=$(logname)
-MGMT_PATH=/etc/sudoers.d/photos
-CMD="/usr/bin/tmutil, /usr/sbin/softwareupdate, /usr/bin/pmset"
-SUDOERS="$name ALL = (ALL) NOPASSWD: $CMD"
-touch $MGMT_PATH
+#name=$(logname)
+#MGMT_PATH=/etc/sudoers.d/photos
+#CMD="/usr/bin/tmutil, /usr/sbin/softwareupdate, /usr/bin/pmset"
+#SUDOERS="$name ALL = (ALL) NOPASSWD: $CMD"
+#touch $MGMT_PATH
 #todo: sudoers.d must be modified, might be easier with python
 #python read, modify/add and write back in the file at the same place.
 #syntax: python /path/to/file
-sudo chown -R root $MGMT_PATH
-sudo chmod -R 755 $MGMT_PATH
-sudo echo "$SUDOERS" > $MGMT_PATH
-echo "$SUDOERS"
-plist_path="/etc/plico_mgmt/nightshift.plist"
+#sudo chown -R root $MGMT_PATH
+#sudo chmod -R 755 $MGMT_PATH
+#sudo echo "$SUDOERS" > $MGMT_PATH
+#echo "$SUDOERS"
+plist_path="/etc/photo_mgmt/plist/photos.plist"
 plist_filename=$(basename "$plist_path")
 install_path="/Library/LaunchDaemons/$plist_filename"
 
@@ -28,6 +28,5 @@ sudo chmod 644 "$install_path"
 sudo launchctl unload "$install_path"
 sudo launchctl load "$install_path"
 
-echo "to check if it's running, run this command: sudo launchctl list | grep wintr"
+echo "to check if it's running, run this command: sudo launchctl list | grep mgmt"
 echo "to uninstall, run this command: sudo launchctl unload \"$install_path\""
-echo "the start_mgmt.app needs to be allowed full disk access before running"

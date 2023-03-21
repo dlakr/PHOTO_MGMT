@@ -3,12 +3,14 @@
 <plist version="1.0">
     <dict>
         <key>Label</key>
-        <string>com.company.popup</string>
+        <string>local.photo_mgmt</string>
         <key>ProgramArguments</key>
         <array>
             <string>/bin/sh</string>
-            <string>/path/to/script.sh</string>
+            <string>/etc/PHOTO_MGMT/sh/test.sh</string>
         </array>
+        <key>UserName</key>
+        <string>root</string>
         <key>WatchPaths</key>
           <array>
              <string>/Volumes/</string>
