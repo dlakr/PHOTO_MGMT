@@ -1,4 +1,4 @@
-from RETRIEVE_AND_INDEX import PhotoAnalysis
+from py.SS.RETRIEVE_AND_INDEX import PhotoAnalysis
 import unittest
 import json
 import os

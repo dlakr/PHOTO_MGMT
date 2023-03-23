@@ -15,9 +15,11 @@ from PIL import Image, ImageFile
 from pillow_heif import register_heif_opener
 from PIL.ExifTags import TAGS
 import sys
-with open('format.json', 'r') as f:
+
+with open('../format.json', 'r') as f:
     formats = json.load(f)['formats']
 all_formats = formats['images'] + formats['videos']
+
 images = formats['images']
 videos = formats['videos']
 ImageFile.LOAD_TRUNCATED_IMAGES = True
@@ -76,12 +78,13 @@ class PhotoAnalysis:
 
         while self.directory != 'q':
 
-            print('s = sort entries and output xlsx index')
-            print('r = generate report (csv)')
-            print('e = end aquiring process')
-            print('j = json')
-            print('t = test unit')
-            print('c = copy originals ')
+            print("sc = scan")
+            # print('s = sort entries and output xlsx index')
+            # print('r = generate report (csv)')
+            # print('e = end aquiring process')
+            # print('j = json')
+            # print('t = test unit')
+            # print('c = copy originals ')
             print('q = quit')
             self.directory = input('Enter directory:')
             if self.directory == '':
@@ -94,9 +97,9 @@ class PhotoAnalysis:
                 self.generate_report(self.sorted_result)
             elif self.directory == 's':
                 self.end_aquisition()
-                data = self.thread_metadata(self.get_metadata(temp_json_loc))
+                data = self.get_metadata(temp_json_loc)
             elif self.directory == 'c':
-                self.thread_metadata(self.copy_originals())
+                self.copy_originals()
 
 
                 # self.write_multipage_html(data=to_html)
@@ -322,37 +325,51 @@ class PhotoAnalysis:
         return result
 
 
-    # def get_paths(self, directory):
-    #     """get absolute path of image file in the given formats"""
-    #
-    #     # pattern = r'\.(jpg|jpeg|heic|png)$'
-    #     pattern = r'\.('
-    #     for index, value in enumerate(all_formats):
-    #         if index < len(all_formats)-1:
-    #
-    #             pattern += f'{value}|'
-    #         else:
-    #             pattern += f'{value})$'
-    #     if os.path.exists(directory):
-    #         count = 0
-    #
-    #         for root, d_names, f_names in os.walk(directory):
-    #             for file in f_names:
-    #                 count += 1
-    #                 path = os.path.join(root,file)
-    #                 print(path)
-    #                 ext = re.findall(pattern, str(file).lower())
-    #                 if ext:
-    #                     self.buffer.append(path)
-    #                     if count == 1000:
-    #                         count = 0
-    #                         self.dict_update += 1
-    #                         if self.dict_update > 1:
-    #                             self.open_type = 'a'
-    #                         self.output_temp(temp_csv_loc, self.buffer, self.open_type)
-    #
-    #
-    #             self.output_temp(temp_csv_loc, self.buffer, self.open_type)
+    def get_paths(self, directory):
+        """get absolute path of image file in the given formats"""
+
+        # pattern = r'\.(jpg|jpeg|heic|png)$'
+        pattern = r'\.('
+        for index, value in enumerate(all_formats):
+            if index < len(all_formats)-1:
+
+                pattern += f'{value}|'
+            else:
+                pattern += f'{value})$'
+        if os.path.exists(directory):
+            count = 0
+
+            for root, d_names, f_names in os.walk(directory):
+                for file in f_names:
+                    count += 1
+                    path = os.path.join(root,file)
+                    print(path)
+                    ext = re.findall(pattern, str(file).lower())
+                    if ext:
+                        self.buffer.append(path)
+                        if count == 1000:
+                            count = 0
+                            self.dict_update += 1
+                            if self.dict_update > 1:
+                                self.open_type = 'a'
+                            self.output_temp(temp_csv_loc, self.buffer, self.open_type)
+
+
+                self.output_temp(temp_csv_loc, self.buffer, self.open_type)
+
+
+    def output_csv(self, file_loc, buffer, open_type):
+        with open(file_loc, open_type, encoding='UTF-8') as f:
+            # writer = csv.writer(f, delimiter=',')
+            for i in buffer:
+
+                f.write(f'{i}\n')
+            f.close()
+
+    def output_temp(self, file_loc, buffer, append):
+        self.output_csv(file_loc, buffer, append)
+        self.buffer = []
+        self.counter = 0
 
     def get_paths_to_json(self, volume):
         """get absolute path of image file in the given formats"""
@@ -375,37 +392,17 @@ class PhotoAnalysis:
                     print(path)
                     ext = re.findall(pattern, str(file).lower())
                     if ext:
-                        self.update_json(path)
-                        self.buffer_json.update(path)
+                        entry = self.update_json(path)
+                        self.buffer_json.update(entry)
                         if count == 1000:
                             count = 0
                             self.dict_update += 1
-
                             self.write_json(temp_csv_loc, self.buffer)
-
-
-
-    def output_csv(self, file_loc, buffer, open_type):
-        with open(file_loc, open_type, encoding='UTF-8') as f:
-            # writer = csv.writer(f, delimiter=',')
-            for i in buffer:
-
-                f.write(f'{i}\n')
-            f.close()
-
-
 
     def update_json(self, file_path):
         vol_name = os.path.split(file_path)[0].split('/')[2]
         dic = {vol_name: {file_path: False}}
-
         return dic
-
-    def output_temp(self, file_loc, buffer, append):
-        self.output_csv(file_loc, buffer, append)
-        self.buffer = []
-        self.counter = 0
-
 
     def write_json(self, file_loc, buffer):
         with open(file_loc, "r+", encoding='UTF-8') as file:
@@ -417,40 +414,30 @@ class PhotoAnalysis:
         self.buffer_json = {}
         self.counter = 0
 
-    def copy_originals(self):
+
+    def copy_from_json(self):
 
         """copy files to folder"""
         #todo: the copyer has to keep track of progress in the in_progress.json file
         # it first has to copy the json map related to the guid as the in_progress.json
         # if the in_progress is not complete it has to be saved back under the original
         # device guid-named file - json command might need fixing to create a deeper tree (see below example)
-        deeper_tree = {
 
-            "volume_name": {
-
-                "not_copied": {
-
-                    "images": {
-                        "jpg": {
-                            "C:\\Users\\DL\\Desktop\\2022-02-19\\2022-02-19 15.48.58.jpg": "jpg",
-                            "C:\\Users\\DL\\Desktop\\2022-02-19\\no\u00c3\u00abl 2008 066.jpg": "jpg"
-                        },
-                        "heic": {
-                            "C:\\Users\\DL\\Desktop\\2022-02-19\\IMG_4742.HEIC": "heic"
-                        },
-                        "png": {
-                            "C:\\Users\\DL\\Desktop\\2022-02-19\\Screenshot 2022-08-26 113338.png": "png"
-                        }
-                    },
-                    "videos": {
-                        "mov": {
-                            "C:\\Users\\DL\\Desktop\\2022-02-19\\2021-07-01 13.39.09.mov": "mov"
-                        }
-                    }
-                }
-            }
-        }
         dic = {}
+        path = os.path.join(temp_loc, 'temp.csv')
+        with open(path, 'r', encoding='utf-8') as f:
+            reader = json.load(f)
+            print(reader)
+            for i in reader:
+                i = i[0]
+                dic[i] = os.path.basename(i)
+        for k, v in dic.items():
+            dest = os.path.join(output_folder, v)
+            shutil.copy(k, dest)
+
+
+    def copy_originals(self):
+
         path = os.path.join(temp_loc, 'temp.csv')
         with open(path, 'r', encoding='utf-8') as f:
             reader = csv.reader(f)
@@ -461,6 +448,7 @@ class PhotoAnalysis:
         for k, v in dic.items():
             dest = os.path.join(output_folder, v)
             shutil.copy(k, dest)
+
 
 
 
