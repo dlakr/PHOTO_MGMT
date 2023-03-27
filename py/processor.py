@@ -4,21 +4,26 @@ import json
 import re
 import shutil
 from pathlib import Path
-from db import create_connection, create_file_entry
+# from db import create_connection, create_file_entry, query_db
+from db import DB
+db = DB()
 
 # formats_path = '../format.json'
-formats_path = r"F:\Dropbox\_Programming\PHOTO_MGMT\py\format.json"
+wd =os.getcwdb().decode('utf-8')
+formats_path = os.path.join(wd, "format.json")
+
 with open(formats_path, 'r') as f:
 	formats = json.load(f)['formats']
 all_formats = formats['images'] + formats['videos']
-
-
+# copies_dest = "~/Desktop"
+copies_dest = r"C:\Users\DL\Desktop"
+database = "pm_database.db"
 class PhotoProcessor:
 
 	def __init__(self):
 
 
-		self.buffer_json = []
+		self.buffer = []
 		self.counter = 0
 		self.buffer_update = 0
 		self.json_loc = ''
@@ -31,19 +36,6 @@ class PhotoProcessor:
 
 		vol_name = self.get_vol_name(self.vol_path)
 
-		# with open(self.json_loc, "w+", encoding='UTF-8') as file:
-		#
-		# 	data = {vol_name: {self.copied_status: []}}
-		# 	json.dump(data, file, indent=4)
-
-		# pattern = r'\.(jpg|jpeg|heic|png)$'
-		pattern = r'\.('
-		for index, value in enumerate(all_formats):
-			if index < len(all_formats) - 1:
-				pattern += f'{value}|'
-			else:
-				pattern += f'{value})$'
-
 		if os.path.exists(self.vol_path):
 			count = 0
 
@@ -51,17 +43,12 @@ class PhotoProcessor:
 				for file in f_names:
 
 					path = os.path.join(root, file)
-					self.buffer_json.append(path)
-					# ext = re.findall(pattern, str(file).lower())
-					# if ext:
-					# 	self.buffer_json.append(path)
-			self.write_database(self.buffer_json, self.vol_name)
+					self.buffer.append(path)
+			self.write_database(self.buffer, self.vol_name)
 
 	def write_database(self, buffer, v_name):
-		# todo add extension to extension table
 
-		database = "pm_database.db"
-		conn = create_connection(database)
+		conn = db.create_connection(database)
 		for path in buffer:
 			try:
 				extension = os.path.splitext(os.path.split(path)[1])[1].lower()
@@ -70,7 +57,9 @@ class PhotoProcessor:
 				print(error)
 				extension = 'n/a'
 			entry = {'vo': v_name, "path": path, "ex": extension, "cp": False}
-			entry_id = create_file_entry(conn, entry)
+			print(f"appending -- {path}")
+			entry_id = db.create_file_entry(conn, entry)
+
 
 	def get_vol_name(self, path):
 
@@ -81,67 +70,78 @@ class PhotoProcessor:
 		vol_name = vn[1]
 		self.vol_name = vol_name
 		return vol_name
-		#todo: add volume name to volumes table
 
-	# def write_json(self,path, data):
-	#
-	# 	with open(path, 'w') as f:
-	# 		js = {self.vol_name: {self.copied_status: []}}
-	# 		for i in data:
-	# 			js[self.vol_name][self.copied_status].append(i)
-	# 		json.dump(js, f, indent=4)
-	# 		self.buffer_json = []
+	def find_pattern(self, path):
 
+		pattern = r'\.('
+		for index, value in enumerate(all_formats):
+			if index < len(all_formats) - 1:
+				pattern += f'{value}|'
+			else:
+				pattern += f'{value})$'
+		ext = re.findall(pattern, str(path).lower())
+		if ext:
+			match = True
+		else:
+			match = False
+		return match
 
-
-	def copy_from_json(self, dest):
+	def copy(self):
 
 		"""copy files to folder and update the json report"""
+		# todo: if i use the buffer as a source i will be able to concurrent.futures to thread the process
 
-		log = ''
-		with open(self.json_loc, 'r+', encoding='utf-8') as f:
-			reader = json.load(f)
-			vol_name = [k for k in reader.keys()][0]
-			print(vol_name)
-			vol_dest = os.path.join(dest, vol_name)
-			log = os.path.join(dest, f'errors.csv')
-			paths = reader[vol_name][self.copied_status]
-			if not os.path.isdir(Path(vol_dest)):
-				os.mkdir(vol_dest)
-			for i in paths:
+		# todo: must check if volume is in database, if so load data in buffer - check is done at plugin
+
+		error_count = 0
+		errors = {}
+		copied = 0
+		copied_type = {}
+		skipped = 0
+		skipped_type = {}
+
+
+		dest = os.path.join(copies_dest, "copies", self.vol_name)
+		if not os.path.isdir(Path(dest)):
+			os.makedirs(dest)
+		for i in self.buffer:
+			ext = os.path.splitext(os.path.split(i)[1])[1].lower()
+			if self.find_pattern(i):
+				conn = db.create_connection(database)
 				fname = os.path.split(i)[1]
 				dest_path = os.path.join(dest, fname)
 				try:
 					shutil.copy(i, dest_path)
 
+					info = ('path', "status", True, i)
+					db.update_db(conn, info)
+					copied_type[ext] = copied_type.get(ext, 1) + 1
+					copied += 1
+					print(info)
 				except Exception as error:
-					#todo: add etrror name to error table
-					with open(log, 'r+', encoding='utf-8') as f:
+					info = ('path', "err", error, i)
+					errors.update({error, i})
+					db.update_db(conn, info)
+					error_count += 1
+			else:
+				skipped_type[ext] = skipped_type.get(ext, 1) + 1
+				skipped += 1
+		e = self.format_report(errors)
+		c = self.format_report(copied_type)
+		s = self.format_report(skipped_type)
+		report = f"""
+		{copied} files copied:
+		{c}
+		{skipped} files skipped:
+		{s}
+		{error_count} errors:
+		{e}
+		"""
+		return report
 
-						data = json.load(f)
-						err = {error: i}
-						data.append(err)
-						f.write(data)
 
-	def copy_from_db(self, dest):
-
-		"""copy files to folder and update the json report"""
-
-		vol_dest = os.path.join(dest, vol_name)
-		log = os.path.join(dest, f'errors.csv')
-		paths = reader[vol_name][self.copied_status]
-		if not os.path.isdir(Path(vol_dest)):
-			os.mkdir(vol_dest)
-		for i in paths:
-			fname = os.path.split(i)[1]
-			dest_path = os.path.join(dest, fname)
-			try:
-				shutil.copy(i, dest_path)
-
-			except Exception as error:
-				with open(log, 'r+', encoding='utf-8') as f:
-					data = json.load(f)
-					err = {error: i}
-					data.append(err)
-					f.write(data)
-
+	def format_report(self, dic):
+		lst = ''
+		for k, v in dic.items():
+			lst += f"   {k}: {v}\n"
+		return lst

@@ -1,82 +1,117 @@
 import sqlite3
 
-tables = {"vo": 'volumes', "ex": 'extensions', "er": 'errors'}
 
-def create_tables(t_names):
+class DB:
+	def __init__(self):
+		self.tables = {"vo": 'volumes', "ex": 'extensions', "er": 'errors'}
 
-	tables = [f""" CREATE TABLE IF NOT EXISTS files (
-	id integer PRIMARY KEY, 
-	vol integer NOT NULL, 
-	path text NOT NULL UNIQUE,
-	ext integer NOT NULL,
-	err integer,
-	status bool,
-	FOREIGN KEY (vol) REFERENCES volumes (vol),
-	FOREIGN KEY (ext) REFERENCES extensions (ext)
-	FOREIGN KEY (err) REFERENCES errors (err)
-	); """]
+	def create_tables(self, conn):
 
-	for k, v in t_names.items():
-		print(k, v)
-		if k == 'vo':
-			sql_foreign = f""" CREATE TABLE IF NOT EXISTS {v} (id integer PRIMARY KEY, {v[:3]} text NOT NULL UNIQUE, ignored bool NOT NULL); """
-		else:
-			sql_foreign = f""" CREATE TABLE IF NOT EXISTS {v} (id integer PRIMARY KEY, {v[:3]} text NOT NULL UNIQUE); """
+		t = [f""" CREATE TABLE IF NOT EXISTS files (
+		id integer PRIMARY KEY, 
+		vol integer NOT NULL, 
+		path text NOT NULL UNIQUE,
+		ext integer NOT NULL,
+		err integer,
+		status bool,
+		FOREIGN KEY (vol) REFERENCES volumes (vol),
+		FOREIGN KEY (ext) REFERENCES extensions (ext)
+		FOREIGN KEY (err) REFERENCES errors (err)
+		); """]
 
-		tables.append(sql_foreign)
+		for k, v in self.tables.items():
+
+			if k == 'vo':
+				sql_foreign = f""" CREATE TABLE IF NOT EXISTS {v} (id integer PRIMARY KEY, {v[:3]} text NOT NULL UNIQUE, ignored bool NOT NULL); """
+			else:
+				sql_foreign = f""" CREATE TABLE IF NOT EXISTS {v} (id integer PRIMARY KEY, {v[:3]} text NOT NULL UNIQUE); """
+
+			t.append(sql_foreign)
+		cur = conn.cursor()
+		for tbl in t:
+			cur.execute(tbl)
 
 
-	return tables
 
-def create_connection(db_file):
-	conn = None
+	def create_connection(self, db_file):
 
-	sql_tables = create_tables(tables)
-
-	try:
 		conn = sqlite3.connect(db_file)
-		c = conn.cursor()
+		return conn
 
-		for t in sql_tables:
-			c.execute(t)
 
-	except Exception as e:
-		print(e)
-	return conn
+	def create_file_entry(self, conn, entry):
 
-def create_file_entry(conn, entry):
+		entry["ex"] = self.create_foreign_entry_ex_err(conn, entry["ex"], self.tables["ex"])
+		entry["vo"] = self.create_foreign_entry_volumes(conn, entry["vo"], False)
+		cur = conn.cursor()
 
-	entry["ex"] = create_foreign_entry_ex_err(conn, entry["ex"], tables["ex"])
-	entry["vo"] = create_foreign_entry_volumes(conn, entry["vo"], tables["vo"])
-	cur = conn.cursor()
-	print(f"entry:{entry}")
-	sql_files = f"""INSERT INTO files(vol, path, ext, status) VALUES(?,?,?,?)"""
-	values = [v for v in entry.values()]
-	cur.execute(sql_files, values)
+		sql_files = f"""INSERT OR IGNORE INTO files(vol, path, ext, status) VALUES(?,?,?,?)"""
+		values = [v for v in entry.values()]
+		cur.execute(sql_files, values)
 
-	conn.commit()
+		conn.commit()
 
-def create_foreign_entry_ex_err(conn, value, tname):
-	sql = f"""INSERT or IGNORE INTO {tname}({tname[:3]}) VALUES(?)"""
-	row = f"SELECT id FROM {tname} WHERE {tname[:3]} = ?"
-	cur = conn.cursor()
-	cur.execute(sql, (value,))
-	cur.execute(row, (value,))
 
-	row_id = cur.fetchall()[0][0]
+	def create_foreign_entry_ex_err(self, conn, value, tname):
+		sql = f"""INSERT or IGNORE INTO {tname}({tname[:3]}) VALUES(?)"""
+		row = f"SELECT id FROM {tname} WHERE {tname[:3]} = ?"
+		cur = conn.cursor()
+		cur.execute(sql, (value,))
+		cur.execute(row, (value,))
 
-	conn.commit()
-	return row_id
+		row_id = cur.fetchall()[0][0]
 
-def create_foreign_entry_volumes(conn, value, tname):
-	sql = f"""INSERT or IGNORE INTO {tname}({tname[:3]}, ignored) VALUES(?, False)"""
-	row = f"SELECT id FROM {tname} WHERE {tname[:3]} = ?"
-	cur = conn.cursor()
-	cur.execute(sql, (value,))
-	cur.execute(row, (value,))
+		conn.commit()
 
-	row_id = cur.fetchall()[0][0]
+		return row_id
 
-	conn.commit()
-	return row_id
+	def create_foreign_entry_volumes(self, conn, volume, ignored_status):
+		sql = f"""INSERT or IGNORE INTO volumes (vol, ignored) VALUES(?,?)"""
+		row = f"SELECT id FROM volumes WHERE vol = ?"
+		cur = conn.cursor()
+		cur.execute(sql, (volume, ignored_status))
+		cur.execute(row, (volume,))
+
+		row_id = cur.fetchall()[0][0]
+
+		conn.commit()
+
+		return row_id
+
+	def query_db(self, conn, tname, col, query):
+		cur = conn.cursor()
+		cur.execute(f"SELECT * FROM {tname} WHERE {col}", (query,))
+		rows = cur.fetchall()
+
+		return rows
+
+	def query_LIKE_db(self, conn, tname, col, query):
+		cur = conn.cursor()
+		cur.execute(f"SELECT * FROM {tname} WHERE {col} LIKE '{query}%'" )
+		rows = cur.fetchall()
+
+		return rows
+	def update_file_status(self, conn, path):
+		"""
+		row = the value that is looked for
+		col = the column in which the value is looked for
+		value = the value that the update will put in
+		"""
+		cur = conn.cursor()
+		print(f'changing status of: {path}')
+		cur.execute(f"UPDATE files SET status = True WHERE path = ?", (path,))
+		conn.commit()
+
+
+	def update_db(self, conn, info):
+
+		col_lookup = info[0]
+		col_change = info[1]
+		val_change = info[2]
+		val_lookup = info[3]
+		cur = conn.cursor()
+
+		cur.execute(f"UPDATE files SET {col_change} = ? WHERE {col_lookup} = ?", (val_change, val_lookup))
+		conn.commit()
+
 
