@@ -1,6 +1,5 @@
 import sqlite3
 
-
 class DB:
 	def __init__(self):
 		self.tables = {"vo": 'volumes', "ex": 'extensions', "er": 'errors'}
