@@ -1,0 +1,49 @@
+<!-- eslint-disable webkitdirectory -->
+<!-- eslint-disable directory -->
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Electron App</title>
+  <style>
+    #buttonContainer {
+      max-height: 400px;
+      overflow-y: auto;
+      margin-right: 20px;
+    }
+
+    .buttonWrapper {
+      display: flex;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .thumbnail {
+      max-width: 150px;
+      max-height: 150px;
+      cursor: pointer;
+    }
+
+    #imageViewer {
+      width: 400px;
+      height: 400px;
+    }
+  </style>
+</head>
+<body>
+  <div id="tab1">
+    <input type="file" id="selectDirectory" webkitdirectory directory multiple>
+  </div>
+
+  <div id="tab2">
+<!--    <button id="loadPathsButton">Display</button>-->
+    <button id="copySelectedButton">Copy Selected</button>
+  </div>
+
+  <div id="buttonContainer"></div>
+  <div id="imageViewer"></div>
+
+  <script src="./renderer.js"></script>
+</body>
+</html>
