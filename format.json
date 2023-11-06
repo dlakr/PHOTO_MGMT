@@ -1,0 +1,6 @@
+{
+
+  "videos": ["mpg", "mp2", "mp4", "mpeg", "mpe", "mpv", "mov"],
+  "images": ["jpg", "jpeg", "heic", "png", "crw", "bmp"]
+}
+
