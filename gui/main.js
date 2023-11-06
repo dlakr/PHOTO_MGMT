@@ -71,13 +71,13 @@ ipcMain.on('load-paths', (event, directory) => {
   const pythonProcess = spawn(pythonExecutable, ['python_script.py', directory]);
 
   pythonProcess.stdout.on('data', (data) => {
-    const pathsData = JSON.parse(data.toString());
+    const pathsDataFromPython = JSON.parse(data.toString());
     console.log(data);
-    console.log(`Received data from Python:`, pathsData);
+    console.log(`Received data from Python:`, pathsDataFromPython);
     try {
 
 
-      win.webContents.send('paths-data', pathsData);
+      win.webContents.send('paths-data', pathsDataFromPython);
     } catch (error) {
       console.error(`Error parsing data from Python: ${error}`);
     }
@@ -93,21 +93,27 @@ ipcMain.on('request-json-data',  (event) => {
     event.reply('send-json-data', jsonData);
     });
 
-ipcMain.on('copy-selected-images', (event, selectedPaths) => {
-    const destinationDirectory = 'path_to_destination_folder'; // replace with your destination folder
+ipcMain.on('copy-marked-files', (event, selectedPaths) => {
+    const destinationDirectory = 'C:\\Users\\dlaqu\\OneDrive\\Desktop\\copied';
 
-    // Ensure the destination directory exists
-    if (!fs.existsSync(destinationDirectory)) {
-        fs.mkdirSync(destinationDirectory, { recursive: true });
+    try {
+        // Ensure the destination directory exists
+        if (!fs.existsSync(destinationDirectory)) {
+            fs.mkdirSync(destinationDirectory, { recursive: true });
+        }
+
+        // Copy each image to the destination directory
+        selectedPaths.forEach(sourcePath => {
+            const fileName = path.basename(sourcePath);
+            const destinationPath = path.join(destinationDirectory, fileName);
+            fs.copyFileSync(sourcePath, destinationPath);
+        });
+
+        // Notify the renderer process that the copy operation is done
+        event.reply('images-copied-successfully');
+    } catch (error) {
+        console.error("Error copying files:", error);
+        event.reply('images-copy-failed', error.message); // Send back the error message to the renderer
     }
-
-    // Copy each image to the destination directory
-    selectedPaths.forEach(sourcePath => {
-        const fileName = path.basename(sourcePath);
-        const destinationPath = path.join(destinationDirectory, fileName);
-        fs.copyFileSync(sourcePath, destinationPath);
-    });
-
-    // Notify the renderer process that the copy operation is done
-    event.reply('images-copied-successfully');
 });
+
