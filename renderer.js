@@ -126,21 +126,26 @@ document.getElementById('selectDirectory').addEventListener('change', (event) =>
 
 
 function getDesktopCopiedFolderPath() {
-  const desktopPath = path.join(os.homedir(), 'Desktop');
-  const copiedFolderPath = path.join(desktopPath, 'copied');
+    const desktopPath = path.join(os.homedir(), 'Desktop');
+    const copiedFolderPath = path.join(desktopPath, 'copied');
 
-  // Ensure the directory exists
-  if (!fs.existsSync(copiedFolderPath)) {
-    fs.mkdirSync(copiedFolderPath, { recursive: true });
-  }
+    // Ensure the directory exists and set permissions
+    if (!fs.existsSync(copiedFolderPath)) {
+        fs.mkdirSync(copiedFolderPath, { recursive: true });
+        // Set the folder permissions to 'read and write' for the owner
+        fs.chmodSync(copiedFolderPath, 0o700); // This sets it to rwx------ (Owner can Read, Write, & Execute)
+    }
 
-  return copiedFolderPath;
+    return copiedFolderPath;
 }
+
 
 function copySelectedFiles() {
     // Get all tickboxes
+    console.log('copying')
     const tickBoxes = document.querySelectorAll('.tickBox');
-
+    const destinationDirectory = getDesktopCopiedFolderPath();
+    fs.chmodSync(destinationDirectory, 0o766);
     // Filter out the ones that are checked and map to their associated path_file
     const selectedFiles = Array.from(tickBoxes).filter(tickBox => tickBox.checked).map(tickBox => {
         const index = parseInt(tickBox.getAttribute('data-index'), 10); // Retrieve the index from the tickBox attribute
@@ -159,10 +164,11 @@ function copySelectedFiles() {
     }
 
     // Get the destination folder path on the desktop
-    const destinationFolder = getDesktopCopiedFolderPath();
+
 
     // Send the selected path_files and the destination folder path to the main process for copying
-    ipcRenderer.send('copy-marked-files', selectedFiles, destinationFolder);
+    console.log(`${selectedFiles} to ${destinationDirectory}`)
+    ipcRenderer.send('copy-marked-files', selectedFiles, destinationDirectory);
 }
 //function copySelectedFiles() {
 //    // Get all tickboxes

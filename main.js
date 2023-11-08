@@ -13,7 +13,7 @@ switch (process.platform) {
         break;
     case 'darwin':
         // On macOS, the Python path would be different, or you could rely on the environment's Python
-        pythonExecutable = path.join(__dirname, 'venv', 'bin', 'python');
+        pythonExecutable = path.join(__dirname, 'm_venv', 'bin', 'python');
         break;
 }
 //});
@@ -33,6 +33,7 @@ function createWindow() {
       nodeIntegration: true,
       contextIsolation: false,
       enableRemoteModule: true,
+      webSecurity: false,
     },
   });
   win.webContents.openDevTools();
@@ -62,7 +63,7 @@ app.on('activate', () => {
     createWindow();
   }
 });
-
+console.log('Main process starting...');
 ipcMain.on('load-paths', (event, directory) => {
   console.log(directory);
 
@@ -73,10 +74,9 @@ ipcMain.on('load-paths', (event, directory) => {
     console.log(data);
     console.log(`Received data from Python:`, pathsDataFromPython);
     try {
-
-
       win.webContents.send('paths-data', pathsDataFromPython);
-    } catch (error) {
+    }
+    catch (error) {
       console.error(`Error parsing data from Python: ${error}`);
     }
   });
@@ -91,8 +91,13 @@ ipcMain.on('request-json-data',  (event) => {
     event.reply('send-json-data', jsonData);
     });
 
-ipcMain.on('copy-marked-files', (event, selectedPaths) => {
-    const destinationDirectory = 'C:\\Users\\dlaqu\\OneDrive\\Desktop\\copied';
+//ipcMain.on('copy-marked-files', (event, selectedPaths) => {
+
+ipcMain.on('copy-marked-files', (event, selectedFiles, destinationDirectory) => {
+    console.log(`Received request to copy files: ${selectedFiles} to ${destinationDirectory}`);
+
+    // Ensure that the destination directory is the one passed from the renderer process
+    // and not hardcoded or overwritten.
 
     try {
         // Ensure the destination directory exists
@@ -100,18 +105,20 @@ ipcMain.on('copy-marked-files', (event, selectedPaths) => {
             fs.mkdirSync(destinationDirectory, { recursive: true });
         }
 
-        // Copy each image to the destination directory
-        selectedPaths.forEach(sourcePath => {
+        // Copy each file to the destination directory
+        selectedFiles.forEach(sourcePath => {
             const fileName = path.basename(sourcePath);
             const destinationPath = path.join(destinationDirectory, fileName);
             fs.copyFileSync(sourcePath, destinationPath);
+            console.log(`copied ${fileName} to ${destinationPath}`);
         });
 
         // Notify the renderer process that the copy operation is done
-        event.reply('images-copied-successfully');
+        event.reply('files-copied-successfully');
     } catch (error) {
         console.error("Error copying files:", error);
-        event.reply('images-copy-failed', error.message); // Send back the error message to the renderer
+        event.reply('files-copy-failed', error.message); // Send back the error message to the renderer
     }
 });
+
 
