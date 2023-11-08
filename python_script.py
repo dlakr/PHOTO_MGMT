@@ -23,7 +23,7 @@ def desktop():
 db_name = "photo_database.sqlite"
 conn = sqlite3.connect(db_name)
 tables = {"vol": "volume", "ext": 'extensions', "err": 'errors'}
-cols = {"path_file": "text NOT NULL UNIQUE", "path_rep": "text", "copied": "bool"}
+cols = {"path_file": "text NOT NULL UNIQUE", "path_rep": "text", "copied": "bool", 'to_copy':'bool'}
 test_entry = {}
 dest_folder = "temp"
 d = ""
@@ -147,20 +147,20 @@ def create_paths_dict(paths):
             # for heics
             jpg = convert_heic_to_jpg(p)
             js_jpg = js_path(jpg)
-            output.append({colist[0]: js_p, colist[1]: js_jpg, colist[2]: False})
+            output.append({colist[0]: js_p, colist[1]: js_jpg, colist[2]: False, colist[3]:True})
         elif ext in video_extensions:
 
             t_dest = get_vid_thumbnail(p)
             js_thumb = js_path(t_dest)
-            output.append({colist[0]: js_p, colist[1]: js_thumb, colist[2]: False})
+            output.append({colist[0]: js_p, colist[1]: js_thumb, colist[2]: False, colist[3]:True})
         else:
             # any other image file
-            output.append({colist[0]: js_p, colist[1]: js_p, colist[2]: False})
+            output.append({colist[0]: js_p, colist[1]: js_p, colist[2]: False, colist[3]:True})
     js = json.dumps(output, indent=2)
     # parsed_js = json.load(js)
     return js
 
-def save_to_database(image_paths):
+def write_to_database(js):
 
     # Implement database connection and table creation if needed
     # Insert the image_paths into the database (file_path, rep_path, copied)
