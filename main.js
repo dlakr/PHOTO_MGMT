@@ -86,6 +86,30 @@ ipcMain.on('load-paths', (event, directory) => {
   });
 });
 
+// Custom console.log
+function customLog(...args) {
+  // Send the log message to the renderer process
+  if (win && win.webContents) {
+    win.webContents.send('console-log', args.map(a => (typeof a === 'object' ? JSON.stringify(a) : String(a))).join(' '));
+  }
+}
+
+// Custom console.error
+function customError(...args) {
+  // Send the error message to the renderer process
+  if (win && win.webContents) {
+    win.webContents.send('console-error', args.map(a => (typeof a === 'object' ? JSON.stringify(a) : String(a))).join(' '));
+  }
+}
+
+// Replace all console.log calls with customLog
+// Replace all console.error calls with customError
+
+// Example usage:
+customLog('This message will be sent to the renderer process');
+customError('This error will be sent to the renderer process');
+
+
 ipcMain.on('request-json-data',  (event) => {
     console.log('json requested')
     event.reply('send-json-data', jsonData);

@@ -6,26 +6,125 @@ const rawData = fs.readFileSync(path.join(__dirname, 'format.json'), 'utf-8');
 
 let formats = {};
 let pathsData = [];
-ipcRenderer.on('paths-data', (event, pathsDataFromPython) => {
-
-  pathsData = pathsDataFromPython
-//  console.log('Received paths-data event with data:', pathsData);
-  createButtons(pathsData);
-//  console.log(pathsData)
-});
-
-try {
 
 
-    formats = JSON.parse(rawData);
+//----------------------------------------------------------------------------------
+// This function will render an image with a checkbox, maintaining its lazy load attribute and state.
+function createImageElement(filePath, isChecked) {
+  observer.observe(image);
+  const imageContainer = document.createElement('div');
+  imageContainer.classList.add('buttonWrapper');
 
-} catch (err) {
-    console.error('Error reading formats.json:', err);
+  const image = new Image();
+  image.src = filePath; // This should be a placeholder or low-res image initially
+  image.dataset.src = filePath; // The actual image to be loaded when in view
+  image.loading = 'lazy';
+  image.classList.add('thumbnail');
+
+  const tickBox = document.createElement('input');
+  tickBox.type = 'checkbox';
+  tickBox.classList.add('tickBox');
+  tickBox.checked = isChecked; // The state should be determined by the application logic
+  tickBox.onchange = (e) => handleTickBoxChange(e, filePath); // A function to handle tickbox state changes
+
+  imageContainer.appendChild(image);
+  imageContainer.appendChild(tickBox);
+  const savedState = localStorage.getItem(filePath);
+  if (savedState !== null) {
+    tickBox.checked = savedState === 'true';
+  }
+
+  return imageContainer;
 }
 
+// A function to handle the tickbox state changes.
+function handleTickBoxChange(event, filePath) {
+  localStorage.setItem(filePath, event.target.checked);
+  // Logic to handle the tickbox state.
+  // This could involve saving the state to a local storage or a global object.
+  console.log(`The tickbox for ${filePath} is now ${event.target.checked ? 'checked' : 'unchecked'}`);
+}
+
+// Logic to render the images would go here
+// For example, when files are loaded, you would call `createImageElement` for each one and append it to `buttonContainer`
+
+//-----------------------------------------------------------------------------
+// Create an observer instance
+const observer = new IntersectionObserver((entries, observer) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      const image = entry.target;
+      image.src = image.dataset.src;
+      observer.unobserve(image); // Stop observing the image once it has been loaded
+    }
+  });
+}, { rootMargin: "50px 0px", threshold: 0.01 });
 
 
+//-----------------------------------------------------------------------------
+//// Save the state when a tickbox is changed
+//function handleTickBoxChange(event, filePath) {
+//  localStorage.setItem(filePath, event.target.checked);
+//  // Rest of your change handling
+//}
+//
+//// When creating the tickbox, set its initial state from localStorage
 
+
+//-----------------------------------------------------------------------------
+// This could be part of your renderer.js
+
+// Observer for lazy loading
+//const observer = new IntersectionObserver((entries, observer) => {
+//  entries.forEach(entry => {
+//    if (entry.isIntersecting) {
+//      const media = entry.target;
+//      if (media.tagName === 'VIDEO') {
+//        // For videos, you might want to generate a thumbnail or use a static one
+//        media.poster = media.dataset.poster; // Your method to define the video poster path
+//      } else if (media.tagName === 'IMG') {
+//        media.src = media.dataset.src; // For images, load the actual image
+//      }
+//      observer.unobserve(media); // Stop observing once loaded
+//    }
+//  });
+//}, { rootMargin: "50px 0px", threshold: 0.01 });
+
+// Function to create media elements (images or videos with thumbnails)
+function createMediaElement(filePath, isChecked, isVideo = false) {
+  const mediaContainer = document.createElement('div');
+  mediaContainer.classList.add('buttonWrapper');
+
+  let media;
+  if (isVideo) {
+    media = document.createElement('video');
+    media.dataset.poster = filePath; // Path to your video thumbnail
+    media.controls = true;
+  } else {
+    media = new Image();
+    media.dataset.src = filePath; // Actual image path
+  }
+  media.classList.add('thumbnail');
+  media.loading = 'lazy'; // Only for images; ignored for video elements
+
+  const tickBox = document.createElement('input');
+  tickBox.type = 'checkbox';
+  tickBox.classList.add('tickBox');
+  tickBox.checked = isChecked;
+  tickBox.onchange = (e) => handleTickBoxChange(e, filePath);
+
+  mediaContainer.appendChild(media);
+  mediaContainer.appendChild(tickBox);
+
+  observer.observe(media); // Start observing the media element
+
+  return mediaContainer;
+}
+
+// Logic to render the images or videos would go here
+// For example, when files are loaded, you would call `createMediaElement` for each one and append it to `buttonContainer`
+
+//-----------------------------------------------------------------------------
 function thumbnailClicked(filePath) {
     const extension = path.extname(filePath).toLowerCase();
 
@@ -111,20 +210,6 @@ function createButtons(thumbnailsData) {
     });
 }
 
-document.getElementById('selectDirectory').addEventListener('change', (event) => {
-
-
-    const path = require('path');
-    let filePath = document.getElementById('selectDirectory').files[0].path;
-
-    let selectedDirectory = path.dirname(filePath);
-
-
-//    const selectedDirectory = event.target.files[0].path;
-    ipcRenderer.send('load-paths', selectedDirectory);
-});
-
-
 function getDesktopCopiedFolderPath() {
     const desktopPath = path.join(os.homedir(), 'Desktop');
     const copiedFolderPath = path.join(desktopPath, 'copied');
@@ -170,62 +255,102 @@ function copySelectedFiles() {
     console.log(`${selectedFiles} to ${destinationDirectory}`)
     ipcRenderer.send('copy-marked-files', selectedFiles, destinationDirectory);
 }
-//function copySelectedFiles() {
-//    // Get all tickboxes
-//    const tickBoxes = document.querySelectorAll('.tickBox');
-////    console.log(`all tickBoxes in the document:${tickBoxes}`)
-//    // Filter out the ones that are checked and map to their associated path_file
-//    const selectedFiles = Array.from(tickBoxes).filter(tickBox => tickBox.checked).map(tickBox => {
-//        const index = parseInt(tickBox.getAttribute('data-index'), 10); // Retrieve the index from the tickBox attribute
-//
-//        if (!pathsData[index]) {
-//            console.error(`No pathsData entry found for index ${index}.`);
-//            return null;
-//        }
-//
-//        return pathsData[index].path_file; // Return the path_file for this index
-//    }).filter(Boolean); // This filter removes any null values from the array.
-//
-//    if (selectedFiles.length === 0) {
-//        console.log('No files selected for copying.');
-//        return;
-//    }
-//
-//    // Send the selected path_files to the main process for copying
-//    ipcRenderer.send('copy-marked-files', selectedFiles, getDesktopPath());
-//}
 
 
-// Attach the function to the copySelectedButton
-const copySelectedButton = document.getElementById('copySelectedButton');
-copySelectedButton.addEventListener('click', copySelectedFiles);
+
+document.addEventListener('DOMContentLoaded', (event) => {
+
+    ipcRenderer.on('console-log', (event, message) => {
+      // Assuming you have an HTML element with the id 'customConsole' where you want to display the logs
+      const customConsole = document.getElementById('customConsole');
+      const messageElement = document.createElement('div');
+      messageElement.textContent = message;
+      messageElement.className = 'log-message'; // Use this class to style your log messages
+      customConsole.appendChild(messageElement);
+    });
+
+    ipcRenderer.on('console-error', (event, message) => {
+      const customConsole = document.getElementById('customConsole');
+      const messageElement = document.createElement('div');
+      messageElement.textContent = message;
+      messageElement.className = 'error-message'; // Use this class to style your error messages
+      customConsole.appendChild(messageElement);
+    });
+    const observer = new IntersectionObserver((entries, observer) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const media = entry.target;
+          if (media.tagName === 'VIDEO') {
+            // For videos, you might want to generate a thumbnail or use a static one
+            media.poster = media.dataset.poster; // Your method to define the video poster path
+          } else if (media.tagName === 'IMG') {
+            media.src = media.dataset.src; // For images, load the actual image
+          }
+          observer.unobserve(media); // Stop observing once loaded
+        }
+      });
+    }, { rootMargin: "50px 0px", threshold: 0.01 });
+
+  ipcRenderer.on('paths-data', (event, pathsDataFromPython) => {
+
+    pathsData = pathsDataFromPython
+    //  console.log('Received paths-data event with data:', pathsData);
+      createButtons(pathsData);
+    //  console.log(pathsData)
+    });
+
+    try {
 
 
-// Custom console log functions
-const originalLog = console.log;
-//const originalWarn = console.warn;
-const originalError = console.error;
+        formats = JSON.parse(rawData);
 
-const customConsole = document.getElementById('customConsole');
-
-console.log = function (...args) {
-    originalLog.apply(console, args);
-    customConsole.innerHTML += '<div style="color: black;">' + args.join(' ') + '</div>';
-    customConsole.scrollTop = customConsole.scrollHeight;
+    } catch (err) {
+        console.error('Error reading formats.json:', err);
 }
+  // ... your existing logic to handle the DOM content loaded
+  document.getElementById('selectDirectory').addEventListener('change', (event) => {
 
-//console.warn = function (...args) {
-//    originalWarn.apply(console, args);
-//    customConsole.innerHTML += '<div style="color: orange;">' + args.join(' ') + '</div>';
-//    customConsole.scrollTop = customConsole.scrollHeight;
-//}
 
-console.error = function (...args) {
-    originalError.apply(console, args);
-    customConsole.innerHTML += '<div style="color: red;">' + args.join(' ') + '</div>';
-    customConsole.scrollTop = customConsole.scrollHeight;
-}
+    const path = require('path');
+    let filePath = document.getElementById('selectDirectory').files[0].path;
 
+    let selectedDirectory = path.dirname(filePath);
+
+
+//    const selectedDirectory = event.target.files[0].path;
+    ipcRenderer.send('load-paths', selectedDirectory);
+    });
+
+    // Attach the function to the copySelectedButton
+    const copySelectedButton = document.getElementById('copySelectedButton');
+    copySelectedButton.addEventListener('click', copySelectedFiles);
+
+
+    // Custom console log functions
+    const originalLog = console.log;
+    //const originalWarn = console.warn;
+    const originalError = console.error;
+
+    const customConsole = document.getElementById('customConsole');
+
+    console.log = function (...args) {
+        originalLog.apply(console, args);
+        customConsole.innerHTML += '<div style="color: black;">' + args.join(' ') + '</div>';
+        customConsole.scrollTop = customConsole.scrollHeight;
+    }
+
+    //console.warn = function (...args) {
+    //    originalWarn.apply(console, args);
+    //    customConsole.innerHTML += '<div style="color: orange;">' + args.join(' ') + '</div>';
+    //    customConsole.scrollTop = customConsole.scrollHeight;
+    //}
+
+    console.error = function (...args) {
+        originalError.apply(console, args);
+        customConsole.innerHTML += '<div style="color: red;">' + args.join(' ') + '</div>';
+        customConsole.scrollTop = customConsole.scrollHeight;
+    }
+});
 
 
 

@@ -169,7 +169,8 @@ def write_to_database(js):
 
 if __name__ == '__main__':
 
-    # directory = 'F:\Dropbox\_Programming\PHOTO_MGMT\sample_data'
+    # # directory = 'F:\Dropbox\_Programming\PHOTO_MGMT\sample_data'
+    # directory = r"C:\Users\dlaqu\OneDrive\Desktop\larger_sample"
     # file_paths = get_image_paths(directory)
     # paths_data = create_paths_dict(file_paths)
     # print(paths_data)  # Ensure the output is printed to allow ipc to pick up the data
