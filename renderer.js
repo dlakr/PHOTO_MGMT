@@ -6,24 +6,25 @@ const rawData = fs.readFileSync(path.join(__dirname, 'format.json'), 'utf-8');
 
 let formats = {};
 let pathsData = [];
+
+ipcRenderer.on('log', (event, ...args) => {
+    console.log(...args); // This will log in the renderer's console
+});
 ipcRenderer.on('paths-data', (event, pathsDataFromPython) => {
 
   pathsData = pathsDataFromPython
-//  console.log('Received paths-data event with data:', pathsData);
+  console.log('Received paths-data event with data:', pathsData);
   createButtons(pathsData);
 //  console.log(pathsData)
 });
 
+
 try {
-
-
     formats = JSON.parse(rawData);
 
 } catch (err) {
     console.error('Error reading formats.json:', err);
 }
-
-
 
 
 function thumbnailClicked(filePath) {

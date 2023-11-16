@@ -1,3 +1,6 @@
+
+
+
 import os
 import sysconfig
 import json
@@ -6,50 +9,103 @@ import cv2
 import sqlite3
 from PIL import Image
 from pillow_heif import register_heif_opener as r_opener
-from db_gui import *
-
+# from db_gui import *
+import time
 from pathlib import Path
+import datetime
+import platform
+import sys
+
 r_opener()
-os_type = sysconfig.get_platform()
+os_type = platform.system()
+import os
+import stat
+import subprocess
+
+def set_permissions(path, val):
+    if os_type == 'Darwin':
+        try:
+            # Using chmod command to set permissions to 666
+            subprocess.run(f'chmod -R {val} {path}', check=True)
+            # print(f"Permissions of {path} set to {val}")
+        except subprocess.CalledProcessError as er:
+            print(f"Error setting permissions: {er}")
+
 
 def desktop():
-    if os_type == 'darwin':
+    if os_type == 'Darwin':
         desktop = os.path.join(os.environ['HOME'], 'Desktop')
     else:
         desktop = os.path.join(os.environ['USERPROFILE'], 'Desktop')
     return desktop
 
 
-db_name = "photo_database.sqlite"
-conn = sqlite3.connect(db_name)
+# db_name = "photo_database.sqlite"
+# conn = sqlite3.connect(db_name)
 tables = {"vol": "volume", "ext": 'extensions', "err": 'errors'}
-cols = {"path_file": "text NOT NULL UNIQUE", "path_rep": "text", "copied": "bool", 'to_copy':'bool'}
+cols = {"path_file": "text NOT NULL UNIQUE", "path_rep": "text", "copied": "bool", 'to_copy': 'bool'}
 test_entry = {}
-dest_folder = "temp"
-d = ""
+# try:
 
-cwd = os.getcwd()
+# dest_folder = os.path.join(os.getcwd(), "temp")
 
+# if os.path.exists(dest_folder):
+#     os.remove(dest_folder)
+#     os.mkdir(dest_folder, mode=0o777)
+#     # set_permissions(dest_folder, 766)
+# else:
+#     os.mkdir(dest_folder)
+#     # set_permissions(dest_folder, 766)
+
+
+
+# copy_folder = os.path.join(desktop(), "Copied")
+#
+# if not os.path.exists(copy_folder):
+#     os.mkdir(copy_folder)
+#     set_permissions(copy_folder, 766)
+# else:
+#     set_permissions(copy_folder, 766)
+
+
+# json_formats = os.path.join(cwd, 'format.json')
+
+
+
+# except Exception as e:
+#     print(f"error setting variables: {e}")
+
+json_formats = {
+    "videos": ["mpg", "mp2", "mp4", "mpeg", "mpe", "mpv", "mov"],
+    "images": ["jpg", "jpeg", "heic", "png", "crw", "bmp"]
+}
 
 def get_formats():
-    with open('format.json') as f:
+    with open(json_formats) as f:
         data = json.load(f)
     return data
 
-image_extensions = ['.'+i for i in  get_formats()["images"]]
-video_extensions = ['.'+i for i in  get_formats()["videos"]]
-file_extensions = image_extensions + video_extensions
 
+try:
+    image_extensions = ['.' + i for i in json_formats["images"]]
+    video_extensions = ['.' + i for i in json_formats["videos"]]
+
+    # image_extensions = ['.'+i for i in  get_formats()["images"]]
+    # video_extensions = ['.'+i for i in  get_formats()["videos"]]
+    file_extensions = image_extensions + video_extensions
+except Exception as e:
+    print(e)
 
 
 def thumbnail_path(file):
-    dest_filename = os.path.join(cwd, dest_folder, os.path.splitext(os.path.basename(file))[0] + ".jpeg")
+    dest_filename = os.path.join(dest_folder, os.path.splitext(os.path.basename(file))[0] + ".jpeg")
     return dest_filename
 
 
 def write_output(out):
-    with open(os.path.join(desktop(),"output", "js_out.log"), 'w') as file:
+    with open(os.path.join(desktop(), "output", "js_out.log"), 'w') as file:
         file.write(out)
+
 
 def log(log):
     path = os.path.join(desktop(), "HEIC.log")
@@ -57,7 +113,7 @@ def log(log):
         f.write(f"{log}\n")
 
 
-def heic_destination(path):
+def heic_destination(path, temp):
     d = os.path.dirname(path)
     folder = d[1]
     orig = d[0][1]
@@ -69,15 +125,6 @@ def heic_destination(path):
 
 
 def convert_heic_to_jpg(heic):
-    
-    if not os.path.exists(dest_folder):
-        os.mkdir(dest_folder)
-    else:
-        try:
-            os.remove(dest_folder)
-            os.mkdir(dest_folder)
-        except PermissionError:
-            pass
 
     try:
         with Image.open(heic) as img:
@@ -91,13 +138,11 @@ def convert_heic_to_jpg(heic):
 
 
 def is_image_file(filename):
-
     ext = os.path.splitext(filename)[1].lower()
     return ext in image_extensions
 
 
 def is_valid_file(filename):
-
     ext = os.path.splitext(filename)[1].lower()
     present = ext in file_extensions
 
@@ -105,7 +150,6 @@ def is_valid_file(filename):
 
 
 def get_image_paths(directory):
-
     image_paths = []
 
     for root, dirs, files in os.walk(directory):
@@ -117,7 +161,6 @@ def get_image_paths(directory):
 
 
 def get_vid_thumbnail(vid_path):
-
     vidcap = cv2.VideoCapture(vid_path)
     if not vidcap.isOpened():
         return
@@ -134,11 +177,13 @@ def js_path(path):
     p = str(Path(path))
     return p
 
-def create_paths_dict(paths):
 
+def create_paths_dict(paths):
     colist = list(cols)
     output = []
+
     for p in paths:
+
         ext = os.path.splitext(p)[1].lower()
 
         js_p = js_path(p)
@@ -147,39 +192,48 @@ def create_paths_dict(paths):
             # for heics
             jpg = convert_heic_to_jpg(p)
             js_jpg = js_path(jpg)
-            output.append({colist[0]: js_p, colist[1]: js_jpg, colist[2]: False, colist[3]:True})
+            output.append({colist[0]: js_p, colist[1]: js_jpg, colist[2]: False, colist[3]: True})
         elif ext in video_extensions:
 
             t_dest = get_vid_thumbnail(p)
             js_thumb = js_path(t_dest)
-            output.append({colist[0]: js_p, colist[1]: js_thumb, colist[2]: False, colist[3]:True})
+            output.append({colist[0]: js_p, colist[1]: js_thumb, colist[2]: False, colist[3]: True})
         else:
             # any other image file
-            output.append({colist[0]: js_p, colist[1]: js_p, colist[2]: False, colist[3]:True})
+            output.append({colist[0]: js_p, colist[1]: js_p, colist[2]: False, colist[3]: True})
     js = json.dumps(output, indent=2)
     # parsed_js = json.load(js)
     return js
 
-def write_to_database(js):
 
+def write_to_database(js):
     # Implement database connection and table creation if needed
     # Insert the image_paths into the database (file_path, rep_path, copied)
     pass
 
 
 if __name__ == '__main__':
+    # print('hi')
 
-    # directory = 'F:\Dropbox\_Programming\PHOTO_MGMT\sample_data'
+    # python_script.py
+
+    # directory = "/Users/davidlaquerre/Desktop/sample_data"
     # file_paths = get_image_paths(directory)
     # paths_data = create_paths_dict(file_paths)
     # print(paths_data)  # Ensure the output is printed to allow ipc to pick up the data
     try:
-        import sys
-
         directory = sys.argv[1]
+        dest_folder = sys.argv[2]
+        # dest_folder = os.path.join(desktop(), "temp")
+        # directory = "/Users/davidlaquerre/Desktop/sample_data"
         file_paths = get_image_paths(directory)
         paths_data = create_paths_dict(file_paths)
-        print(paths_data)  # Ensure the output is printed to allow ipc to pick up the data
+        print(paths_data)
+    # print('hello again')
+
     except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
+        with open(os.path.join(desktop(), "pm_log.log"), "a") as f:
+            now = datetime.datetime.now()
+            f.write(f"{now} - Final error: {e}\n")
+
 
