@@ -15,7 +15,7 @@ from pathlib import Path
 import datetime
 import platform
 import sys
-
+import threading
 r_opener()
 os_type = platform.system()
 import os
@@ -44,36 +44,8 @@ def desktop():
 # conn = sqlite3.connect(db_name)
 tables = {"vol": "volume", "ext": 'extensions', "err": 'errors'}
 cols = {"path_file": "text NOT NULL UNIQUE", "path_rep": "text", "copied": "bool", 'to_copy': 'bool'}
-test_entry = {}
-# try:
-
-# dest_folder = os.path.join(os.getcwd(), "temp")
-
-# if os.path.exists(dest_folder):
-#     os.remove(dest_folder)
-#     os.mkdir(dest_folder, mode=0o777)
-#     # set_permissions(dest_folder, 766)
-# else:
-#     os.mkdir(dest_folder)
-#     # set_permissions(dest_folder, 766)
 
 
-
-# copy_folder = os.path.join(desktop(), "Copied")
-#
-# if not os.path.exists(copy_folder):
-#     os.mkdir(copy_folder)
-#     set_permissions(copy_folder, 766)
-# else:
-#     set_permissions(copy_folder, 766)
-
-
-# json_formats = os.path.join(cwd, 'format.json')
-
-
-
-# except Exception as e:
-#     print(f"error setting variables: {e}")
 
 json_formats = {
     "videos": ["mpg", "mp2", "mp4", "mpeg", "mpe", "mpv", "mov"],
@@ -151,11 +123,13 @@ def is_valid_file(filename):
 
 def get_image_paths(directory):
     image_paths = []
-
+    images_to_process = 0
     for root, dirs, files in os.walk(directory):
         for file in files:
             path = os.path.join(root, file)
             if is_valid_file(file):
+                images_to_process += 1
+                print(f"PROGRESS={images_to_process}")
                 image_paths.append(path)
     return image_paths
 
@@ -213,27 +187,23 @@ def write_to_database(js):
 
 
 if __name__ == '__main__':
-    # print('hi')
 
-    # python_script.py
-
-    # directory = "/Users/davidlaquerre/Desktop/sample_data"
-    # file_paths = get_image_paths(directory)
-    # paths_data = create_paths_dict(file_paths)
-    # print(paths_data)  # Ensure the output is printed to allow ipc to pick up the data
     try:
         directory = sys.argv[1]
-        dest_folder = sys.argv[2]
-        # dest_folder = os.path.join(desktop(), "temp")
-        # directory = "/Users/davidlaquerre/Desktop/sample_data"
+        # dest_folder = sys.argv[2]
+        dest_folder = os.path.join(r"C:\Users\dlaqu\OneDrive\Desktop", "temp")
+        # # os.mkdir(dest_folder)
+        # directory = os.path.join(r"C:\Users\dlaqu\OneDrive\Desktop", "sample_data")
         file_paths = get_image_paths(directory)
         paths_data = create_paths_dict(file_paths)
         print(paths_data)
-    # print('hello again')
+
 
     except Exception as e:
-        with open(os.path.join(desktop(), "pm_log.log"), "a") as f:
-            now = datetime.datetime.now()
-            f.write(f"{now} - Final error: {e}\n")
+        now = datetime.datetime.now()
+        print(f"{now} - Final error: {e}\n")
+        # with open(os.path.join(desktop(), "pm_log.log"), "a") as f:
+        #     now = datetime.datetime.now()
+        #     f.write(f"{now} - Final error: {e}\n")
 
 
