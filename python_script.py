@@ -22,6 +22,8 @@ import os
 import stat
 import subprocess
 
+
+media_found = 0
 def set_permissions(path, val):
     if os_type == 'Darwin':
         try:
@@ -121,16 +123,19 @@ def is_valid_file(filename):
     return present
 
 
-def get_image_paths(directory):
+def get_image_paths(directory, fileCount):
     image_paths = []
-    images_to_process = 0
+    media_found = 0
+
     for root, dirs, files in os.walk(directory):
         for file in files:
             path = os.path.join(root, file)
             if is_valid_file(file):
-                images_to_process += 1
-                print(f"PROGRESS={images_to_process}")
                 image_paths.append(path)
+            media_found += 1
+            # progress_update = json.dumps({'progress': media_found})
+            # print(progress_update, flush=True)
+
     return image_paths
 
 
@@ -155,7 +160,7 @@ def js_path(path):
 def create_paths_dict(paths):
     colist = list(cols)
     output = []
-
+    img_processed = 0
     for p in paths:
 
         ext = os.path.splitext(p)[1].lower()
@@ -175,7 +180,11 @@ def create_paths_dict(paths):
         else:
             # any other image file
             output.append({colist[0]: js_p, colist[1]: js_p, colist[2]: False, colist[3]: True})
-    js = json.dumps(output, indent=2)
+        img_processed += 1
+        progress_update = json.dumps({'progress': img_processed})
+        print(progress_update, flush=True)
+    js_paths = {'paths': output}
+    js = json.dumps(js_paths, indent=2)
     # parsed_js = json.load(js)
     return js
 
@@ -190,11 +199,13 @@ if __name__ == '__main__':
 
     try:
         directory = sys.argv[1]
-        # dest_folder = sys.argv[2]
-        dest_folder = os.path.join(r"C:\Users\dlaqu\OneDrive\Desktop", "temp")
+        dest_folder = sys.argv[2]
+        fileCount = sys.argv[3]
+        # fileCount = 0
+        # dest_folder = os.path.join(r"C:\Users\dlaqu\OneDrive\Desktop", "temp")
         # # os.mkdir(dest_folder)
         # directory = os.path.join(r"C:\Users\dlaqu\OneDrive\Desktop", "sample_data")
-        file_paths = get_image_paths(directory)
+        file_paths = get_image_paths(directory, fileCount)
         paths_data = create_paths_dict(file_paths)
         print(paths_data)
 

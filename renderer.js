@@ -51,8 +51,8 @@ ipcRenderer.on('paths-data', (event, pathsDataFromPython) => {
   createButtons(pathsData);
 });
 
-ipcRenderer.on('update-file-count', (event, fileCount) => {
-    document.getElementById('fileCount').textContent = `Files to process: ${fileCount}`;
+ipcRenderer.on("update-progress", (event, progress) => {
+    document.getElementById('fileCount').textContent = `Files processed: ${progress}`;
 });
 
 try {
@@ -78,32 +78,76 @@ function thumbnailClicked(filePath) {
 }
 
 function showImageInViewer(imagePath) {
-    const imageViewer = document.getElementById('imageViewer');
-    imageViewer.innerHTML = '';
+    const contentViewer = document.getElementById('contentViewer');
+    contentViewer.innerHTML = ''; // Clear previous content
 
     const image = document.createElement('img');
     image.className = 'viewerImage';
     image.src = `file://${imagePath}`;
-    imageViewer.appendChild(image);
+    contentViewer.appendChild(image);
+
+    document.getElementById('viewerContainer').style.display = 'block';
 }
 
 function playVideoInPlayer(videoPath) {
-  const videoPlayer = document.getElementById('videoPlayer');
-  videoPlayer.innerHTML = ''; // Clear existing content
+    const contentViewer = document.getElementById('contentViewer');
+    contentViewer.innerHTML = ''; // Clear previous content
+    // When showing the video
 
-  const video = document.createElement('video');
-  video.controls = true; // Add video controls (play, pause, etc.)
-  video.autoplay = true; // Set the video to autoplay
-  video.muted = true; // Mute the video initially
-  video.className = 'playerVideo';
+    const video = document.createElement('video');
+    video.className = 'viewerVideo';
+    video.controls = true;
+    video.style.display = 'block';
+    video.setAttribute('data-playing', 'true'); // Set custom attribute
+    video.src = `file://${videoPath}`;
+    contentViewer.appendChild(video);
 
-  const source = document.createElement('source');
-  source.src = `file://${videoPath}`;
-  video.appendChild(source);
-
-  videoPlayer.appendChild(video);
-
+    document.getElementById('viewerContainer').style.display = 'block';
 }
+
+document.getElementById('closeViewer').addEventListener('click', function() {
+    const viewerContainer = document.getElementById('viewerContainer');
+    const videoPlayer = document.getElementById('viewerVideo');
+
+    // Check if the videoPlayer element exists and if it's currently displayed
+    if (videoPlayer && videoPlayer.style.display === 'block') {
+        videoPlayer.pause();
+        videoPlayer.currentTime = 0;
+        videoPlayer.src = '';
+        videoPlayer.removeAttribute('data-playing');
+    }
+
+    // Hide the entire viewer container
+    if (viewerContainer) {
+        viewerContainer.style.display = 'none';
+    }
+});
+
+
+
+
+
+
+function openViewer(src, isVideo) {
+    var viewerContainer = document.getElementById('viewerContainer');
+    var viewerImage = document.getElementById('viewerImage');
+    var viewerVideo = document.getElementById('viewerVideo');
+
+    if (isVideo) {
+        viewerVideo.style.display = 'block';
+        viewerImage.style.display = 'none';
+        viewerVideo.src = src;
+    } else {
+        viewerImage.style.display = 'block';
+        viewerVideo.style.display = 'none';
+        viewerImage.src = src;
+    }
+
+    viewerContainer.style.display = 'block';
+}
+
+// Add click event listeners to your thumbnails to open the viewer
+// Example: openViewer('path/to/image.jpg', false);
 
 
 function createButtons(thumbnailsData) {
@@ -122,33 +166,44 @@ function createButtons(thumbnailsData) {
         lazyLoadThumbnail(thumbnail)
         // Determine if the file is a video or image
         const extension = path.extname(thumbnailData.path_file).toLowerCase().slice(1);
-
-        const isVideo = formats.videos.includes(extension);
-
-    thumbnail.addEventListener('click', () => {
-      const imageViewer = document.getElementById('imageViewer');
-      const videoPlayer = document.getElementById('videoPlayer');
-
-      if (isVideo) {
-          imageViewer.innerHTML = ''; // Clear the image viewer
-          playVideoInPlayer(thumbnailData.path_file);
-      } else {
-          videoPlayer.innerHTML = ''; // Clear the video player
-          showImageInViewer(thumbnailData.path_rep);
-      }
-    });
         const tickBox = document.createElement('input');
         tickBox.type = 'checkbox';
         tickBox.className = 'tickBox';
         tickBox.setAttribute('data-index', index);
-//        tickBox.checked = true
+        tickBox.checked = true;
+        const isVideo = formats.videos.includes(extension);
+
+    thumbnail.addEventListener('click', () => {
+      const imageViewer = document.getElementById('viewerImage');
+      const videoPlayer = document.getElementById('viewerVideo');
+
+      if (isVideo) {
+//          imageViewer.innerHTML = ''; // Clear the image viewer
+          playVideoInPlayer(thumbnailData.path_file);
+      } else {
+//          videoPlayer.innerHTML = ''; // Clear the video player
+          showImageInViewer(thumbnailData.path_rep);
+      }
+    });
+
+
         buttonWrapper.appendChild(thumbnail);
         buttonWrapper.appendChild(tickBox);
         buttonContainer.appendChild(buttonWrapper);
-        tickBox.checked = selectionState[index] || true;
+//        tickBox.checked = selectionState[index] || true;
+
+//
 
     });
-    restoreSelectionState();
+    // After creating all checkboxes
+    thumbnailsData.forEach((thumbnailData, index) => {
+        const tickBox = document.querySelector(`.tickBox[data-index="${index}"]`);
+        if (selectionState[index] !== undefined) {
+            tickBox.checked = selectionState[index];
+        }
+    });
+
+//    restoreSelectionState();
 }
 
 document.addEventListener('change', event => {
@@ -157,10 +212,11 @@ document.addEventListener('change', event => {
     }
 });
 document.getElementById('selectDirectory').addEventListener('change', (event) => {
-    const path = require('path');
+    const files = event.target.files;
+    const fileCount = files.length;
     let filePath = document.getElementById('selectDirectory').files[0].path;
     let selectedDirectory = path.dirname(filePath);
-    ipcRenderer.send('load-paths', selectedDirectory);
+    ipcRenderer.send('load-paths', selectedDirectory, fileCount);
 });
 
 
@@ -213,20 +269,20 @@ const originalLog = console.log;
 
 const originalError = console.error;
 
-const customConsole = document.getElementById('customConsole');
-
-console.log = function (...args) {
-    originalLog.apply(console, args);
-    customConsole.innerHTML += '<div style="color: black;">' + args.join(' ') + '</div>';
-    customConsole.scrollTop = customConsole.scrollHeight;
-}
-
-
-console.error = function (...args) {
-    originalError.apply(console, args);
-    customConsole.innerHTML += '<div style="color: red;">' + args.join(' ') + '</div>';
-    customConsole.scrollTop = customConsole.scrollHeight;
-}
+//const customConsole = document.getElementById('customConsole');
+//
+//console.log = function (...args) {
+//    originalLog.apply(console, args);
+//    customConsole.innerHTML += '<div style="color: black;">' + args.join(' ') + '</div>';
+//    customConsole.scrollTop = customConsole.scrollHeight;
+//}
+//
+//
+//console.error = function (...args) {
+//    originalError.apply(console, args);
+//    customConsole.innerHTML += '<div style="color: red;">' + args.join(' ') + '</div>';
+//    customConsole.scrollTop = customConsole.scrollHeight;
+//}
 
 
 

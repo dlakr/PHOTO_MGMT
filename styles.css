@@ -1,0 +1,67 @@
+#buttonContainer {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  grid-gap: 10px;
+  max-height: 25%;
+  overflow-y: auto;
+}
+
+.buttonWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  margin-bottom: 10px;
+  position: relative;
+}
+
+
+.thumbnail {
+  width: 130px;
+  height: auto;
+  max-height: 130px;
+  object-fit: cover;
+  margin-right: 10px;  // added this to give some space between the image and the tickbox
+}
+
+.tickBox {
+  position: absolute;
+  right: 5px;
+}
+
+
+.viewer-container {
+    display: none; /* Hidden by default */
+    position: fixed; /* Positioned relative to the viewport */
+    z-index: 1000; /* Sit on top of other elements */
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5); /* Semi-transparent background */
+}
+
+.close-viewer {
+    position: fixed; /* Fixed positioning relative to the viewport */
+    top: 20px; /* Distance from the top of the viewport */
+    right: 20px; /* Distance from the right of the viewport */
+    font-size: 30px; /* Size of the close icon */
+    color: white; /* Color of the close icon */
+    cursor: pointer; /* Change cursor to pointer to indicate it's clickable */
+    z-index: 1010; /* Ensure it's above other elements */
+}
+
+
+.content-viewer {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.viewerImage, .viewerVideo {
+    max-width: 90%; /* Maximum width of the image or video */
+    max-height: 80vh; /* Maximum height of the image or video */
+    object-fit: contain; /* Maintain the aspect ratio without cropping */
+    display: block; /* Ensure it's a block-level element */
+    margin: auto; /* Center the media in the viewer */
+}
