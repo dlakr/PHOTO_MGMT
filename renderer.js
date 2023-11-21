@@ -265,6 +265,23 @@ function copySelectedFiles() {
     ipcRenderer.send('copy-marked-files', selectedFiles, destinationDirectory);
 }
 
+function resetAppState() {
+    // Clear any displayed data
+    document.getElementById('buttonContainer').innerHTML = ''; // Example element
+
+    // Reset any internal state variables
+    selectionState = {}; // Example state variable
+
+    // Hide or reset other UI elements as needed
+    const viewerContainer = document.getElementById('viewerContainer');
+    if (viewerContainer) {
+        viewerContainer.style.display = 'none';
+    }
+
+    // Additional reset actions...
+}
+
+
 const copySelectedButton = document.getElementById('copySelectedButton');
 copySelectedButton.addEventListener('click', copySelectedFiles);
 
