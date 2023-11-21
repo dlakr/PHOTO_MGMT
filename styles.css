@@ -12,6 +12,7 @@
   justify-content: flex-start;
   margin-bottom: 10px;
   position: relative;
+  padding: 10px
 }
 
 
@@ -50,8 +51,12 @@
     z-index: 1010; /* Ensure it's above other elements */
 }
 
+.fileNameLabel {
+    margin-top: 80px;
 
+}
 .content-viewer {
+    text-align: center;
     position: absolute;
     top: 50%;
     left: 50%;

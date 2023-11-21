@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
 const path = require('path');
 const url = require('url');
 const { spawn } = require('child_process');
@@ -100,6 +100,12 @@ app.on('activate', () => {
     createWindow();
   }
 });
+
+
+ipcMain.on('show-in-file-browser', (event, filePath) => {
+    shell.showItemInFolder(filePath);
+});
+
 
 ipcMain.on('load-paths', (event, directoryPath, fileCount) => {
     const pythonScriptPath = path.join(__dirname, 'python_script.py');

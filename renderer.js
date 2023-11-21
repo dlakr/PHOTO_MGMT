@@ -87,18 +87,56 @@ function showImageInViewer(imagePath) {
     document.getElementById('viewerContainer').style.display = 'block';
 }
 
+// ... existing code ...
+
 function playVideoInPlayer(videoPath) {
     const contentViewer = document.getElementById('contentViewer');
     contentViewer.innerHTML = ''; // Clear previous content
-    // When showing the video
 
-    const video = document.createElement('video');
-    video.className = 'viewerVideo';
-    video.controls = true;
-    video.style.display = 'block';
-    video.setAttribute('data-playing', 'true'); // Set custom attribute
-    video.src = `file://${videoPath}`;
-    contentViewer.appendChild(video);
+    // Determine the file extension
+    const fileExtension = videoPath.split('.').pop().toLowerCase();
+    let validType;
+    let sourceType;
+
+    // Check for supported video formats
+    switch (fileExtension) {
+        case 'mp4':
+            sourceType = 'video/mp4';
+            validType = true;
+            break;
+        // ... other supported formats ...
+        default:
+            validType = false;
+            break;
+    }
+
+    if (validType) {
+        // Create and display the video element
+        const video = document.createElement('video');
+        video.className = 'viewerVideo';
+        video.controls = true;
+        video.src = `file://${videoPath}`;
+        contentViewer.appendChild(video);
+    } else {
+        // Display an error message for unsupported formats
+        const errorMessage = document.createElement('p');
+        errorMessage.textContent = 'Video format not supported.';
+        errorMessage.style.backgroundColor = "white"
+        errorMessage.style.padding = "10px"
+        contentViewer.appendChild(errorMessage);
+
+        // Add "Show in File Browser" button
+        const showInFileBrowserButton = document.createElement('button');
+        showInFileBrowserButton.textContent = 'Show in File Browser';
+        showInFileBrowserButton.style.fontSize = '16px'
+        showInFileBrowserButton.style.padding = '10px 20px'
+        showInFileBrowserButton.addEventListener('click', () => {
+            ipcRenderer.send('show-in-file-browser', videoPath);
+            event.stopPropagation();
+
+        });
+        contentViewer.appendChild(showInFileBrowserButton);
+    }
 
     document.getElementById('viewerContainer').style.display = 'block';
 }
@@ -106,27 +144,75 @@ function playVideoInPlayer(videoPath) {
 
 
 
+
+
+
 document.getElementById('viewerContainer').addEventListener('click', function(event) {
     const contentViewer = document.getElementById('contentViewer');
-//    const videoPlayer = document.getElementById('video');
+    const showInFileBrowserButton = document.getElementById('showInFileBrowserButton'); // This might be null
     const videoPlayer = contentViewer.querySelector('video');
 
-    console.log("Container clicked"); // Debugging
+    // Check if the click is outside of contentViewer and not on the 'Show in File Browser' button
+    if ((!showInFileBrowserButton || (event.target !== showInFileBrowserButton && !showInFileBrowserButton.contains(event.target))) && !contentViewer.contains(event.target)) {
+        // Hide the viewer container
+        this.style.display = 'none';
 
-    if (!contentViewer.contains(event.target)) {
-        console.log("Clicked outside contentViewer"); // Debugging
-
+        // Pause and reset the video if it's playing
         if (videoPlayer) {
-            console.log("Pausing video"); // Debugging
             videoPlayer.pause();
             videoPlayer.currentTime = 0;
             videoPlayer.src = '';
-        }else{
-        console.log('not pausing video')}
-
-        this.style.display = 'none';
+        }
     }
 });
+
+
+
+//document.getElementById('viewerContainer').addEventListener('click', function(event) {
+//    const contentViewer = document.getElementById('contentViewer');
+//    const showInFileBrowserButton = document.getElementById('showInFileBrowserButton'); // Make sure to add this ID to your button
+//    const videoPlayer = contentViewer.querySelector('video');
+//    // Check if the click is outside of contentViewer and not on the 'Show in File Browser' button
+//    if (!contentViewer.contains(event.target) && event.target !== showInFileBrowserButton && !showInFileBrowserButton.contains(event.target)) {
+//        // Hide the viewer container
+////    if (event.target !== showInFileBrowserButton && !showInFileBrowserButton.contains(event.target) && !contentViewer.contains(event.target)) {
+////        // Pause and reset the video if it's playing
+//        this.style.display = 'none';
+//        console.log("Container clicked"); // Debugging
+//        if (!contentViewer.contains(event.target)) {
+//            console.log("Clicked outside contentViewer"); // Debugging
+//
+//            if (videoPlayer) {
+//                console.log("Pausing video"); // Debugging
+//                videoPlayer.pause();
+//                videoPlayer.currentTime = 0;
+//                videoPlayer.src = '';
+//            }else{
+//            console.log('not pausing video')
+//            }
+//
+//        this.style.display = 'none';
+//        }
+//    }
+//});
+//document.getElementById('viewerContainer').addEventListener('click', function(event) {
+//    const contentViewer = document.getElementById('contentViewer');
+//    const showInFileBrowserButton = document.getElementById('showInFileBrowserButton');
+//    const videoPlayer = contentViewer.querySelector('video');
+//
+//    // Check if the click is not on the 'Show in File Browser' button and is outside of contentViewer
+//    if (event.target !== showInFileBrowserButton && !showInFileBrowserButton.contains(event.target) && !contentViewer.contains(event.target)) {
+//        // Pause and reset the video if it's playing
+//        if (videoPlayer) {
+//            videoPlayer.pause();
+//            videoPlayer.currentTime = 0;
+//            videoPlayer.src = '';
+//        }
+//
+//        // Hide the viewer container
+//        this.style.display = 'none';
+//    }
+//});
 
 
 
@@ -149,8 +235,7 @@ function openViewer(src, isVideo) {
     viewerContainer.style.display = 'block';
 }
 
-// Add click event listeners to your thumbnails to open the viewer
-// Example: openViewer('path/to/image.jpg', false);
+
 
 
 function createButtons(thumbnailsData) {
@@ -158,62 +243,61 @@ function createButtons(thumbnailsData) {
     buttonContainer.innerHTML = ''; // Clear existing buttons
 
     thumbnailsData.forEach((thumbnailData, index) => {
-        console.log(`${thumbnailData.path_file}`);
         const buttonWrapper = document.createElement('div');
         buttonWrapper.className = 'buttonWrapper';
 
+        // Create the thumbnail
         const thumbnail = document.createElement('img');
         thumbnail.className = 'thumbnail';
         thumbnail.dataset.src = `file://${thumbnailData.path_rep}`;
-//        thumbnail.dataset.src =
-        lazyLoadThumbnail(thumbnail)
+        lazyLoadThumbnail(thumbnail); // Assuming this function sets up lazy loading
+
+        // Extract the file name from the path
+        const fileName = thumbnailData.path_file.split('.').pop(); // Adjust for your path structure
+
         // Determine if the file is a video or image
         const extension = path.extname(thumbnailData.path_file).toLowerCase().slice(1);
+        const isVideo = formats.videos.includes(extension);
+
+        thumbnail.addEventListener('click', () => {
+            const imageViewer = document.getElementById('viewerImage');
+            const videoPlayer = document.getElementById('viewerVideo');
+
+            if (isVideo) {
+                playVideoInPlayer(thumbnailData.path_file);
+            } else {
+                showImageInViewer(thumbnailData.path_rep);
+            }
+        });
+
+        // Create the file name label
+        const fileNameLabel = document.createElement('div');
+        fileNameLabel.className = 'fileNameLabel';
+        fileNameLabel.textContent = fileName;
+
+        // Append the thumbnail and file name label to the wrapper
+        buttonWrapper.appendChild(thumbnail);
+        buttonWrapper.appendChild(fileNameLabel);
+
+        // Create and append the tick box
         const tickBox = document.createElement('input');
         tickBox.type = 'checkbox';
         tickBox.className = 'tickBox';
         tickBox.setAttribute('data-index', index);
         tickBox.checked = true;
-        const isVideo = formats.videos.includes(extension);
-
-    thumbnail.addEventListener('click', () => {
-      const imageViewer = document.getElementById('viewerImage');
-      const videoPlayer = document.getElementById('viewerVideo');
-
-      if (isVideo) {
-//          imageViewer.innerHTML = ''; // Clear the image viewer
-          playVideoInPlayer(thumbnailData.path_file);
-      } else {
-//          videoPlayer.innerHTML = ''; // Clear the video player
-          showImageInViewer(thumbnailData.path_rep);
-      }
-    });
-
-
-        buttonWrapper.appendChild(thumbnail);
         buttonWrapper.appendChild(tickBox);
+
+        // Append the wrapper to the container
         buttonContainer.appendChild(buttonWrapper);
-//        tickBox.checked = selectionState[index] || true;
-
-//
-
-    });
-    // After creating all checkboxes
-    thumbnailsData.forEach((thumbnailData, index) => {
-        const tickBox = document.querySelector(`.tickBox[data-index="${index}"]`);
-        if (selectionState[index] !== undefined) {
-            tickBox.checked = selectionState[index];
-        }
     });
 
-//    restoreSelectionState();
+    // Restore selection state (if applicable)
+    // ...
 }
 
-document.addEventListener('change', event => {
-    if(event.target.classList.contains('tickBox')) {
-        saveSelectionState();
-    }
-});
+
+
+
 document.getElementById('selectDirectory').addEventListener('change', (event) => {
     const files = event.target.files;
     const fileCount = files.length;
@@ -306,7 +390,3 @@ document.getElementById('selectDirectory').addEventListener('click', function() 
 //    customConsole.innerHTML += '<div style="color: red;">' + args.join(' ') + '</div>';
 //    customConsole.scrollTop = customConsole.scrollHeight;
 //}
-
-
-
-
