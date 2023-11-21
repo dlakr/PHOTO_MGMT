@@ -61,9 +61,7 @@ try {
 } catch (err) {
     console.error('Error reading formats.json:', err);
 }
-
-
-
+const videoPlayer = contentViewer.querySelector('video');
 
 function thumbnailClicked(filePath) {
     const extension = path.extname(filePath).toLowerCase();
@@ -105,25 +103,30 @@ function playVideoInPlayer(videoPath) {
     document.getElementById('viewerContainer').style.display = 'block';
 }
 
-document.getElementById('closeViewer').addEventListener('click', function() {
-    const viewerContainer = document.getElementById('viewerContainer');
-    const videoPlayer = document.getElementById('viewerVideo');
 
-    // Check if the videoPlayer element exists and if it's currently displayed
-    if (videoPlayer && videoPlayer.style.display === 'block') {
-        videoPlayer.pause();
-        videoPlayer.currentTime = 0;
-        videoPlayer.src = '';
-        videoPlayer.removeAttribute('data-playing');
-    }
 
-    // Hide the entire viewer container
-    if (viewerContainer) {
-        viewerContainer.style.display = 'none';
+
+document.getElementById('viewerContainer').addEventListener('click', function(event) {
+    const contentViewer = document.getElementById('contentViewer');
+//    const videoPlayer = document.getElementById('video');
+    const videoPlayer = contentViewer.querySelector('video');
+
+    console.log("Container clicked"); // Debugging
+
+    if (!contentViewer.contains(event.target)) {
+        console.log("Clicked outside contentViewer"); // Debugging
+
+        if (videoPlayer) {
+            console.log("Pausing video"); // Debugging
+            videoPlayer.pause();
+            videoPlayer.currentTime = 0;
+            videoPlayer.src = '';
+        }else{
+        console.log('not pausing video')}
+
+        this.style.display = 'none';
     }
 });
-
-
 
 
 
@@ -269,6 +272,9 @@ const originalLog = console.log;
 
 const originalError = console.error;
 
+document.getElementById('selectDirectory').addEventListener('click', function() {
+    resetAppState();
+});
 //const customConsole = document.getElementById('customConsole');
 //
 //console.log = function (...args) {
