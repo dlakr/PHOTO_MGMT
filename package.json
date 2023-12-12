@@ -1,0 +1,33 @@
+{
+  "name": "photo_mgmt",
+  "version": "1.0.0",
+  "description": "tool to retrieve photos & videos",
+  "main": "main.js",
+  "build": {
+    "appId": "photoMgmt.app",
+    "extraResources": [
+      {
+        "from": "./resources/pytho_script",
+        "to": "python_script",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ]
+  },
+  "scripts": {
+    "start": "electron .",
+    "package": "electron-packager . --platform=darwin",
+    "dist": "electron-builder --mac"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.1"
+  },
+  "dependencies": {
+
+  }
+}
