@@ -7,124 +7,62 @@ const rawData = fs.readFileSync(path.join(__dirname, 'format.json'), 'utf-8');
 let formats = {};
 let pathsData = [];
 
+// IntersectionObserver for lazy loading thumbnails
+let observer = new IntersectionObserver((entries, observer) => {
+    entries.forEach(entry => {
+        if(entry.isIntersecting){
+            const thumbnail = entry.target;
+            thumbnail.src = thumbnail.dataset.src; // Load the actual image
+            observer.unobserve(thumbnail); // Stop observing the loaded thumbnail
+        }
+    });
+}, { rootMargin: "0px 0px 50px 0px" });
 
-//----------------------------------------------------------------------------------
-// This function will render an image with a checkbox, maintaining its lazy load attribute and state.
-function createImageElement(filePath, isChecked) {
-  observer.observe(image);
-  const imageContainer = document.createElement('div');
-  imageContainer.classList.add('buttonWrapper');
-
-  const image = new Image();
-  image.src = filePath; // This should be a placeholder or low-res image initially
-  image.dataset.src = filePath; // The actual image to be loaded when in view
-  image.loading = 'lazy';
-  image.classList.add('thumbnail');
-
-  const tickBox = document.createElement('input');
-  tickBox.type = 'checkbox';
-  tickBox.classList.add('tickBox');
-  tickBox.checked = isChecked; // The state should be determined by the application logic
-  tickBox.onchange = (e) => handleTickBoxChange(e, filePath); // A function to handle tickbox state changes
-
-  imageContainer.appendChild(image);
-  imageContainer.appendChild(tickBox);
-  const savedState = localStorage.getItem(filePath);
-  if (savedState !== null) {
-    tickBox.checked = savedState === 'true';
-  }
-
-  return imageContainer;
+function lazyLoadThumbnail(thumbnail) {
+    observer.observe(thumbnail); // Start observing for lazy loading
 }
 
-// A function to handle the tickbox state changes.
-function handleTickBoxChange(event, filePath) {
-  localStorage.setItem(filePath, event.target.checked);
-  // Logic to handle the tickbox state.
-  // This could involve saving the state to a local storage or a global object.
-  console.log(`The tickbox for ${filePath} is now ${event.target.checked ? 'checked' : 'unchecked'}`);
+let selectionState = {}; // Object to store selection state
+
+function saveSelectionState() {
+    const tickBoxes = document.querySelectorAll('.tickBox');
+    tickBoxes.forEach(tickBox => {
+        const index = tickBox.getAttribute('data-index');
+        selectionState[index] = tickBox.checked;
+    });
 }
 
-// Logic to render the images would go here
-// For example, when files are loaded, you would call `createImageElement` for each one and append it to `buttonContainer`
-
-//-----------------------------------------------------------------------------
-// Create an observer instance
-const observer = new IntersectionObserver((entries, observer) => {
-  entries.forEach(entry => {
-    if (entry.isIntersecting) {
-      const image = entry.target;
-      image.src = image.dataset.src;
-      observer.unobserve(image); // Stop observing the image once it has been loaded
-    }
-  });
-}, { rootMargin: "50px 0px", threshold: 0.01 });
-
-
-//-----------------------------------------------------------------------------
-//// Save the state when a tickbox is changed
-//function handleTickBoxChange(event, filePath) {
-//  localStorage.setItem(filePath, event.target.checked);
-//  // Rest of your change handling
-//}
-//
-//// When creating the tickbox, set its initial state from localStorage
-
-
-//-----------------------------------------------------------------------------
-// This could be part of your renderer.js
-
-// Observer for lazy loading
-//const observer = new IntersectionObserver((entries, observer) => {
-//  entries.forEach(entry => {
-//    if (entry.isIntersecting) {
-//      const media = entry.target;
-//      if (media.tagName === 'VIDEO') {
-//        // For videos, you might want to generate a thumbnail or use a static one
-//        media.poster = media.dataset.poster; // Your method to define the video poster path
-//      } else if (media.tagName === 'IMG') {
-//        media.src = media.dataset.src; // For images, load the actual image
-//      }
-//      observer.unobserve(media); // Stop observing once loaded
-//    }
-//  });
-//}, { rootMargin: "50px 0px", threshold: 0.01 });
-
-// Function to create media elements (images or videos with thumbnails)
-function createMediaElement(filePath, isChecked, isVideo = false) {
-  const mediaContainer = document.createElement('div');
-  mediaContainer.classList.add('buttonWrapper');
-
-  let media;
-  if (isVideo) {
-    media = document.createElement('video');
-    media.dataset.poster = filePath; // Path to your video thumbnail
-    media.controls = true;
-  } else {
-    media = new Image();
-    media.dataset.src = filePath; // Actual image path
-  }
-  media.classList.add('thumbnail');
-  media.loading = 'lazy'; // Only for images; ignored for video elements
-
-  const tickBox = document.createElement('input');
-  tickBox.type = 'checkbox';
-  tickBox.classList.add('tickBox');
-  tickBox.checked = isChecked;
-  tickBox.onchange = (e) => handleTickBoxChange(e, filePath);
-
-  mediaContainer.appendChild(media);
-  mediaContainer.appendChild(tickBox);
-
-  observer.observe(media); // Start observing the media element
-
-  return mediaContainer;
+function restoreSelectionState() {
+    const tickBoxes = document.querySelectorAll('.tickBox');
+    tickBoxes.forEach(tickBox => {
+        const index = tickBox.getAttribute('data-index');
+        tickBox.checked = selectionState[index] || false; // Restore state or default to false
+    });
 }
 
-// Logic to render the images or videos would go here
-// For example, when files are loaded, you would call `createMediaElement` for each one and append it to `buttonContainer`
 
-//-----------------------------------------------------------------------------
+ipcRenderer.on('log', (event, ...args) => {
+    console.log(...args); // This will log in the renderer's console
+});
+ipcRenderer.on('paths-data', (event, pathsDataFromPython) => {
+
+  pathsData = pathsDataFromPython
+  console.log('Received paths-data event with data:', pathsData);
+  createButtons(pathsData);
+});
+
+ipcRenderer.on("update-progress", (event, progress) => {
+    document.getElementById('fileCount').textContent = `Files processed: ${progress}`;
+});
+
+try {
+    formats = JSON.parse(rawData);
+
+} catch (err) {
+    console.error('Error reading formats.json:', err);
+}
+const videoPlayer = contentViewer.querySelector('video');
+
 function thumbnailClicked(filePath) {
     const extension = path.extname(filePath).toLowerCase();
 
@@ -138,32 +76,81 @@ function thumbnailClicked(filePath) {
 }
 
 function showImageInViewer(imagePath) {
-    const imageViewer = document.getElementById('imageViewer');
-    imageViewer.innerHTML = '';
+    const contentViewer = document.getElementById('contentViewer');
+    contentViewer.innerHTML = ''; // Clear previous content
 
     const image = document.createElement('img');
     image.className = 'viewerImage';
     image.src = `file://${imagePath}`;
-    imageViewer.appendChild(image);
+    contentViewer.appendChild(image);
+
+    document.getElementById('viewerContainer').style.display = 'block';
 }
 
 function playVideoInPlayer(videoPath) {
-  const videoPlayer = document.getElementById('videoPlayer');
-  videoPlayer.innerHTML = ''; // Clear existing content
+    const contentViewer = document.getElementById('contentViewer');
+    contentViewer.innerHTML = ''; // Clear previous content
+    // When showing the video
 
-  const video = document.createElement('video');
-  video.controls = true; // Add video controls (play, pause, etc.)
-  video.autoplay = true; // Set the video to autoplay
-  video.muted = true; // Mute the video initially
-  video.className = 'playerVideo';
+    const video = document.createElement('video');
+    video.className = 'viewerVideo';
+    video.controls = true;
+    video.style.display = 'block';
+    video.setAttribute('data-playing', 'true'); // Set custom attribute
+    video.src = `file://${videoPath}`;
+    contentViewer.appendChild(video);
 
-  const source = document.createElement('source');
-  source.src = `file://${videoPath}`;
-  video.appendChild(source);
-
-  videoPlayer.appendChild(video);
-
+    document.getElementById('viewerContainer').style.display = 'block';
 }
+
+
+
+
+document.getElementById('viewerContainer').addEventListener('click', function(event) {
+    const contentViewer = document.getElementById('contentViewer');
+//    const videoPlayer = document.getElementById('video');
+    const videoPlayer = contentViewer.querySelector('video');
+
+    console.log("Container clicked"); // Debugging
+
+    if (!contentViewer.contains(event.target)) {
+        console.log("Clicked outside contentViewer"); // Debugging
+
+        if (videoPlayer) {
+            console.log("Pausing video"); // Debugging
+            videoPlayer.pause();
+            videoPlayer.currentTime = 0;
+            videoPlayer.src = '';
+        }else{
+        console.log('not pausing video')}
+
+        this.style.display = 'none';
+    }
+});
+
+
+
+
+function openViewer(src, isVideo) {
+    var viewerContainer = document.getElementById('viewerContainer');
+    var viewerImage = document.getElementById('viewerImage');
+    var viewerVideo = document.getElementById('viewerVideo');
+
+    if (isVideo) {
+        viewerVideo.style.display = 'block';
+        viewerImage.style.display = 'none';
+        viewerVideo.src = src;
+    } else {
+        viewerImage.style.display = 'block';
+        viewerVideo.style.display = 'none';
+        viewerImage.src = src;
+    }
+
+    viewerContainer.style.display = 'block';
+}
+
+// Add click event listeners to your thumbnails to open the viewer
+// Example: openViewer('path/to/image.jpg', false);
 
 
 function createButtons(thumbnailsData) {
@@ -171,53 +158,79 @@ function createButtons(thumbnailsData) {
     buttonContainer.innerHTML = ''; // Clear existing buttons
 
     thumbnailsData.forEach((thumbnailData, index) => {
-    console.log(`${thumbnailData.path_file}`);
+        console.log(`${thumbnailData.path_file}`);
         const buttonWrapper = document.createElement('div');
         buttonWrapper.className = 'buttonWrapper';
 
         const thumbnail = document.createElement('img');
         thumbnail.className = 'thumbnail';
-        thumbnail.src = `file://${thumbnailData.path_rep}`;
-
+        thumbnail.dataset.src = `file://${thumbnailData.path_rep}`;
+//        thumbnail.dataset.src =
+        lazyLoadThumbnail(thumbnail)
         // Determine if the file is a video or image
         const extension = path.extname(thumbnailData.path_file).toLowerCase().slice(1);
-
+        const tickBox = document.createElement('input');
+        tickBox.type = 'checkbox';
+        tickBox.className = 'tickBox';
+        tickBox.setAttribute('data-index', index);
+        tickBox.checked = true;
         const isVideo = formats.videos.includes(extension);
 
     thumbnail.addEventListener('click', () => {
-      const imageViewer = document.getElementById('imageViewer');
-      const videoPlayer = document.getElementById('videoPlayer');
+      const imageViewer = document.getElementById('viewerImage');
+      const videoPlayer = document.getElementById('viewerVideo');
 
       if (isVideo) {
-          imageViewer.innerHTML = ''; // Clear the image viewer
+//          imageViewer.innerHTML = ''; // Clear the image viewer
           playVideoInPlayer(thumbnailData.path_file);
       } else {
-          videoPlayer.innerHTML = ''; // Clear the video player
+//          videoPlayer.innerHTML = ''; // Clear the video player
           showImageInViewer(thumbnailData.path_rep);
       }
     });
 
 
-        const tickBox = document.createElement('input');
-        tickBox.type = 'checkbox';
-        tickBox.className = 'tickBox';
-        tickBox.setAttribute('data-index', index);
-        tickBox.checked = true
-
         buttonWrapper.appendChild(thumbnail);
         buttonWrapper.appendChild(tickBox);
         buttonContainer.appendChild(buttonWrapper);
+//        tickBox.checked = selectionState[index] || true;
+
+//
+
     });
+    // After creating all checkboxes
+    thumbnailsData.forEach((thumbnailData, index) => {
+        const tickBox = document.querySelector(`.tickBox[data-index="${index}"]`);
+        if (selectionState[index] !== undefined) {
+            tickBox.checked = selectionState[index];
+        }
+    });
+
+//    restoreSelectionState();
 }
+
+document.addEventListener('change', event => {
+    if(event.target.classList.contains('tickBox')) {
+        saveSelectionState();
+    }
+});
+document.getElementById('selectDirectory').addEventListener('change', (event) => {
+    const files = event.target.files;
+    const fileCount = files.length;
+    let filePath = document.getElementById('selectDirectory').files[0].path;
+    let selectedDirectory = path.dirname(filePath);
+    ipcRenderer.send('load-paths', selectedDirectory, fileCount);
+});
+
 
 function getDesktopCopiedFolderPath() {
     const desktopPath = path.join(os.homedir(), 'Desktop');
     const copiedFolderPath = path.join(desktopPath, 'copied');
 
-    // Ensure the directory exists and set permissions
+
     if (!fs.existsSync(copiedFolderPath)) {
         fs.mkdirSync(copiedFolderPath, { recursive: true });
-        // Set the folder permissions to 'read and write' for the owner
+
         fs.chmodSync(copiedFolderPath, 0o700); // This sets it to rwx------ (Owner can Read, Write, & Execute)
     }
 
@@ -231,7 +244,7 @@ function copySelectedFiles() {
     const tickBoxes = document.querySelectorAll('.tickBox');
     const destinationDirectory = getDesktopCopiedFolderPath();
     fs.chmodSync(destinationDirectory, 0o766);
-    // Filter out the ones that are checked and map to their associated path_file
+
     const selectedFiles = Array.from(tickBoxes).filter(tickBox => tickBox.checked).map(tickBox => {
         const index = parseInt(tickBox.getAttribute('data-index'), 10); // Retrieve the index from the tickBox attribute
 
@@ -248,109 +261,52 @@ function copySelectedFiles() {
         return;
     }
 
-    // Get the destination folder path on the desktop
-
-
-    // Send the selected path_files and the destination folder path to the main process for copying
     console.log(`${selectedFiles} to ${destinationDirectory}`)
     ipcRenderer.send('copy-marked-files', selectedFiles, destinationDirectory);
 }
 
+function resetAppState() {
+    // Clear any displayed data
+    document.getElementById('buttonContainer').innerHTML = ''; // Example element
 
+    // Reset any internal state variables
+    selectionState = {}; // Example state variable
 
-document.addEventListener('DOMContentLoaded', (event) => {
+    // Hide or reset other UI elements as needed
+    const viewerContainer = document.getElementById('viewerContainer');
+    if (viewerContainer) {
+        viewerContainer.style.display = 'none';
+    }
 
-    ipcRenderer.on('console-log', (event, message) => {
-      // Assuming you have an HTML element with the id 'customConsole' where you want to display the logs
-      const customConsole = document.getElementById('customConsole');
-      const messageElement = document.createElement('div');
-      messageElement.textContent = message;
-      messageElement.className = 'log-message'; // Use this class to style your log messages
-      customConsole.appendChild(messageElement);
-    });
-
-    ipcRenderer.on('console-error', (event, message) => {
-      const customConsole = document.getElementById('customConsole');
-      const messageElement = document.createElement('div');
-      messageElement.textContent = message;
-      messageElement.className = 'error-message'; // Use this class to style your error messages
-      customConsole.appendChild(messageElement);
-    });
-    const observer = new IntersectionObserver((entries, observer) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          const media = entry.target;
-          if (media.tagName === 'VIDEO') {
-            // For videos, you might want to generate a thumbnail or use a static one
-            media.poster = media.dataset.poster; // Your method to define the video poster path
-          } else if (media.tagName === 'IMG') {
-            media.src = media.dataset.src; // For images, load the actual image
-          }
-          observer.unobserve(media); // Stop observing once loaded
-        }
-      });
-    }, { rootMargin: "50px 0px", threshold: 0.01 });
-
-  ipcRenderer.on('paths-data', (event, pathsDataFromPython) => {
-
-    pathsData = pathsDataFromPython
-    //  console.log('Received paths-data event with data:', pathsData);
-      createButtons(pathsData);
-    //  console.log(pathsData)
-    });
-
-    try {
-
-
-        formats = JSON.parse(rawData);
-
-    } catch (err) {
-        console.error('Error reading formats.json:', err);
+    // Additional reset actions...
 }
-  // ... your existing logic to handle the DOM content loaded
-  document.getElementById('selectDirectory').addEventListener('change', (event) => {
 
 
-    const path = require('path');
-    let filePath = document.getElementById('selectDirectory').files[0].path;
+const copySelectedButton = document.getElementById('copySelectedButton');
+copySelectedButton.addEventListener('click', copySelectedFiles);
 
-    let selectedDirectory = path.dirname(filePath);
+const originalLog = console.log;
 
+const originalError = console.error;
 
-//    const selectedDirectory = event.target.files[0].path;
-    ipcRenderer.send('load-paths', selectedDirectory);
-    });
-
-    // Attach the function to the copySelectedButton
-    const copySelectedButton = document.getElementById('copySelectedButton');
-    copySelectedButton.addEventListener('click', copySelectedFiles);
-
-
-    // Custom console log functions
-    const originalLog = console.log;
-    //const originalWarn = console.warn;
-    const originalError = console.error;
-
-    const customConsole = document.getElementById('customConsole');
-
-    console.log = function (...args) {
-        originalLog.apply(console, args);
-        customConsole.innerHTML += '<div style="color: black;">' + args.join(' ') + '</div>';
-        customConsole.scrollTop = customConsole.scrollHeight;
-    }
-
-    //console.warn = function (...args) {
-    //    originalWarn.apply(console, args);
-    //    customConsole.innerHTML += '<div style="color: orange;">' + args.join(' ') + '</div>';
-    //    customConsole.scrollTop = customConsole.scrollHeight;
-    //}
-
-    console.error = function (...args) {
-        originalError.apply(console, args);
-        customConsole.innerHTML += '<div style="color: red;">' + args.join(' ') + '</div>';
-        customConsole.scrollTop = customConsole.scrollHeight;
-    }
+document.getElementById('selectDirectory').addEventListener('click', function() {
+    resetAppState();
 });
+//const customConsole = document.getElementById('customConsole');
+//
+//console.log = function (...args) {
+//    originalLog.apply(console, args);
+//    customConsole.innerHTML += '<div style="color: black;">' + args.join(' ') + '</div>';
+//    customConsole.scrollTop = customConsole.scrollHeight;
+//}
+//
+//
+//console.error = function (...args) {
+//    originalError.apply(console, args);
+//    customConsole.innerHTML += '<div style="color: red;">' + args.join(' ') + '</div>';
+//    customConsole.scrollTop = customConsole.scrollHeight;
+//}
+
 
 
 

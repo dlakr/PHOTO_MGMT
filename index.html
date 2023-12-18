@@ -4,71 +4,14 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline';">
   <meta charset="UTF-8">
-  <title>Electron App</title>
-  <style>
-  #buttonContainer {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-      grid-gap: 10px;
-      max-height: 25%;
-      overflow-y: auto;
-  }
+  <title>PHOTO_MGMT</title>
+  <link rel="stylesheet" href="./styles.css">
 
-  .buttonWrapper {
-      display: flex;
-      align-items: center;
-      justify-content: flex-start;
-      margin-bottom: 10px;
-      position: relative;
-  }
-
-
-  .thumbnail {
-      width: 130px;
-      height: auto;
-      max-height: 130px;
-      object-fit: cover;
-      margin-right: 10px;  // added this to give some space between the image and the tickbox
-  }
-
-  .tickBox {
-      position: absolute;
-      right: 5px;
-  }
-
-
-    #imageViewer {
-
-      height: 150%%;
-    }
-    .viewerImage {
-
-      max-height: 1000px;
-      display: block;
-      margin: 0 auto;
-    }
-    #videoPlayer {
-      width: 50%;
-      height: 50%;
-    }
-    .playerVideo {
-      max-width:100%;
-      max-height: 100%;
-      display: block;
-      margin: 0 auto;
-      padding: 5px;
-    }
-    #customConsole{
-    border: 1px solid black;
-    height: 25%;
-    overflow: auto;
-    padding: 5px;
-    }
-
-  </style>
 </head>
 <body>
+  <div id="fileCount">Files Processed: 0</div>
   <div id="tab1">
     <input type="file" id="selectDirectory" webkitdirectory directory multiple>
   </div>
@@ -80,13 +23,17 @@
 
   <div id="buttonContainer"></div>
 
+<!--new image container-->
+<div id="viewerContainer" class="viewer-container">
+    <span id="closeViewer" class="close-viewer">X</span>
+    <div id="contentViewer" class="content-viewer"></div>
+</div>
+<!--new image container-->
 
+<!--  <div id="imageViewer"></div>-->
+<!--  <div id="videoPlayer"></div>-->
 
-
-  <div id="imageViewer"></div>
-  <div id="videoPlayer"></div>
-
-  <div id="customConsole"></div>
+<!--  <div id="customConsole"></div>-->
 
   <script src="./renderer.js"></script>
 </body>

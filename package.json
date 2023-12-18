@@ -5,9 +5,10 @@
   "main": "main.js",
   "build": {
     "appId": "photoMgmt.app",
+    "target": ["dmg", "zip"],
     "extraResources": [
       {
-        "from": "./resources/pytho_script",
+        "from": "./resources/python_script",
         "to": "python_script",
         "filter": [
           "**/*"
@@ -17,17 +18,18 @@
   },
   "scripts": {
     "start": "electron .",
-    "package": "electron-packager . --platform=darwin",
-    "dist": "electron-builder --mac"
+    "package": "electron-packager . photoMgmt --overwrite --platform=darwin --arch=x64",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
     "electron": "^28.0.0",
-    "electron-builder": "^24.9.1"
-  },
-  "dependencies": {
-
+    "electron-builder": "^24.9.1",
+    "electron-packager": "^17.1.2",
+    "ffmpeg": "^0.0.4",
+    "depcheck": "^1.4.7"
   }
 }

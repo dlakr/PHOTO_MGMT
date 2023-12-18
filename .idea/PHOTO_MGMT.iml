@@ -5,7 +5,7 @@
       <excludeFolder url="file://$MODULE_DIR$/gui/venv" />
       <excludeFolder url="file://$MODULE_DIR$/w_venv" />
     </content>
-    <orderEntry type="jdk" jdkName="Python 3.8 (pm-local)" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="Python 3.8 (PHOTO_MGMT)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
   <component name="PyDocumentationSettings">

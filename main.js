@@ -1,28 +1,73 @@
+//const ffmpeg = require('fluent-ffmpeg');
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const url = require('url');
 const { spawn } = require('child_process');
 const fs = require('fs');
+const os = require('os')
+const wd = app.getPath('userData')
+const desktopPath = app.getPath('desktop');
+const logFilePath = path.join(desktopPath, 'app.log');
 
+//let pythonInterpreter
+//switch (process.platform) {
+//    case 'win32':
+//        // On Windows, you might specify a path to the Python executable in a virtual environment
+//        pythonInterpreter = path.join(__dirname, 'w_venv', 'Scripts', 'python.exe');
+//        break;
+//    case 'darwin':
+//        // On macOS, the Python path would be different, or you could rely on the environment's Python
+//        if(app.isPackaged){
+//            pythonInterpreter = "./pm_venv/bin/python";
+//        }else{
+//            pythonInterpreter = "./pm_venv/bin/python";
+//        };
+//
+//        break;
+//}
+
+
+function logToFile(message) {
+    fs.appendFile(logFilePath, message + '\n', (err) => {
+        if (err) throw err;
+    });
+}
+
+// Override console.log
+const originalConsoleLog = console.log;
+console.log = (...args) => {
+    originalConsoleLog(...args); // Keep default behavior
+    logToFile(args.join(' ')); // Log to file
+};
+
+
+
+app.commandLine.appendSwitch('user-data-dir', wd);
 let pythonExecutable;
 
-switch (process.platform) {
-    case 'win32':
-        // On Windows, you might specify a path to the Python executable in a virtual environment
-        pythonExecutable = path.join(__dirname, 'w_venv', 'Scripts', 'python.exe');
-        break;
-    case 'darwin':
-        // On macOS, the Python path would be different, or you could rely on the environment's Python
-        pythonExecutable = path.join(__dirname, 'm_venv', 'bin', 'python');
-        break;
-}
-//});
-
-//store the virtual environment in a variable (mac)
-//const pythonExecutable = './myenv/bin/python'; // For macOS and Linux
-//for windows
 
 let win;
+const tempPath = path.join(os.tmpdir(), 'temp');
+//console.log(`${tempPath}`)
+//if (!fs.existsSync(tempPath)) {
+//    fs.mkdirSync(tempPath, { recursive: true });
+//}
+
+
+
+function deleteFolderRecursively(directoryPath) {
+    if (fs.existsSync(directoryPath)) {
+        fs.readdirSync(directoryPath).forEach((file) => {
+            const curPath = path.join(directoryPath, file);
+            if (fs.lstatSync(curPath).isDirectory()) { // recurse
+                deleteFolderRecursively(curPath);
+            } else { // delete file
+                fs.unlinkSync(curPath);
+            }
+        });
+        fs.rmdirSync(directoryPath);
+    }
+}
 
 function createWindow() {
   win = new BrowserWindow({
@@ -33,10 +78,10 @@ function createWindow() {
       nodeIntegration: true,
       contextIsolation: false,
       enableRemoteModule: true,
-      webSecurity: false,
+      webSecurity: true,
     },
   });
-  win.webContents.openDevTools();
+//  win.webContents.openDevTools();
   win.loadURL(
     url.format({
       pathname: path.join(__dirname, 'index.html'),
@@ -58,33 +103,56 @@ app.on('window-all-closed', () => {
   }
 });
 
+//app.on('before-quit', (event) => {
+//    deleteFolderRecursively(tempPath);
+//    console.log(`Folder deleted on app quit: ${tempPath}`);
+//});
+
 app.on('activate', () => {
   if (win === null) {
     createWindow();
   }
 });
+
+const pythonExecutablePath = path.join(process.resourcesPath, 'python_script');
+const pythonScriptPath = path.join(__dirname, 'python_script.py');
+//const pythonExecutablePath = path.join(__dirname, 'resources/python_script');
+const pythonInterpreter = path.join(__dirname, "pm_venv/bin/python");
+
 console.log('Main process starting...');
-ipcMain.on('load-paths', (event, directory) => {
-  console.log(directory);
 
-  const pythonProcess = spawn(pythonExecutable, ['python_script.py', directory]);
 
-  pythonProcess.stdout.on('data', (data) => {
-    const pathsDataFromPython = JSON.parse(data.toString());
-    console.log(data);
-    console.log(`Received data from Python:`, pathsDataFromPython);
+ipcMain.on('load-paths', (event, selectedDirectory, fileCount) => {
+//    const pythonScriptPath = path.join(__dirname, 'python_script.py');
+
+
+
     try {
-      win.webContents.send('paths-data', pathsDataFromPython);
-    }
-    catch (error) {
-      console.error(`Error parsing data from Python: ${error}`);
-    }
-  });
+        console.log("Python Executable Path:", pythonExecutablePath);
+        const pythonProcess = spawn(pythonExecutablePath, [selectedDirectory, fileCount]);
+//        const pythonProcess = spawn(pythonInterpreter, [pythonScriptPath, directoryPath, tempPath, fileCount], { env: process.env });
+        console.log('python process spawned')
+        pythonProcess.stdout.on('data', (data) => {
+            console.log(data)
+            try {
+                const jsonData = JSON.parse(data);
+                if (jsonData.progress !== undefined) {
+                    console.log(`data:${jsonData.progress}`)
+                    win.webContents.send("update-progress", jsonData.progress);
+                } else if (jsonData.paths) {
+                    win.webContents.send("paths-data", jsonData.paths);
+                }
+            } catch (parseError) {
+                console.error(`Error parsing JSON data: ${parseError}`);
+                console.log(`${data}`)
+            }
+        });
 
-  pythonProcess.stderr.on('data', (data) => {
-    console.error(`Python script error: ${data}`);
-  });
+    } catch (error) {
+        console.error(`Error spawning Python process: ${error}`);
+    }
 });
+
 
 // Custom console.log
 function customLog(...args) {
@@ -94,28 +162,22 @@ function customLog(...args) {
   }
 }
 
-// Custom console.error
-function customError(...args) {
-  // Send the error message to the renderer process
-  if (win && win.webContents) {
-    win.webContents.send('console-error', args.map(a => (typeof a === 'object' ? JSON.stringify(a) : String(a))).join(' '));
-  }
-}
-
-// Replace all console.log calls with customLog
-// Replace all console.error calls with customError
-
-// Example usage:
-customLog('This message will be sent to the renderer process');
-customError('This error will be sent to the renderer process');
 
 
-ipcMain.on('request-json-data',  (event) => {
-    console.log('json requested')
-    event.reply('send-json-data', jsonData);
-    });
+//function convertMovToMp4(inputPath, outputPath) {
+//    ffmpeg(inputPath)
+//        .format('mp4')
+//        .on('end', () => {
+//            console.log('Conversion finished.');
+//        })
+//        .on('error', (err) => {
+//            console.error('Error:', err);
+//        })
+//        .save(outputPath);
+//}
 
-//ipcMain.on('copy-marked-files', (event, selectedPaths) => {
+//convertMovToMp4('path/to/input.mov', 'path/to/output.mp4');
+
 
 ipcMain.on('copy-marked-files', (event, selectedFiles, destinationDirectory) => {
     console.log(`Received request to copy files: ${selectedFiles} to ${destinationDirectory}`);
@@ -146,3 +208,4 @@ ipcMain.on('copy-marked-files', (event, selectedFiles, destinationDirectory) => 
 });
 
 
+//msiexec /i F:\Dropbox\_Programming\PHOTO_MGMT\release-builds\installer64\PhotoMgmt-1.0.0-setup.msi /L*V "F:\Dropbox\_Programming\PHOTO_MGMT\release-builds\installer64\install.log"
