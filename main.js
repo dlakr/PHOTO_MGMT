@@ -9,22 +9,6 @@ const wd = app.getPath('userData')
 const desktopPath = app.getPath('desktop');
 const logFilePath = path.join(desktopPath, 'app.log');
 
-//let pythonInterpreter
-//switch (process.platform) {
-//    case 'win32':
-//        // On Windows, you might specify a path to the Python executable in a virtual environment
-//        pythonInterpreter = path.join(__dirname, 'w_venv', 'Scripts', 'python.exe');
-//        break;
-//    case 'darwin':
-//        // On macOS, the Python path would be different, or you could rely on the environment's Python
-//        if(app.isPackaged){
-//            pythonInterpreter = "./pm_venv/bin/python";
-//        }else{
-//            pythonInterpreter = "./pm_venv/bin/python";
-//        };
-//
-//        break;
-//}
 
 
 function logToFile(message) {
@@ -48,11 +32,6 @@ let pythonExecutable;
 
 let win;
 const tempPath = path.join(os.tmpdir(), 'temp');
-//console.log(`${tempPath}`)
-//if (!fs.existsSync(tempPath)) {
-//    fs.mkdirSync(tempPath, { recursive: true });
-//}
-
 
 
 function deleteFolderRecursively(directoryPath) {
@@ -81,7 +60,7 @@ function createWindow() {
       webSecurity: true,
     },
   });
-//  win.webContents.openDevTools();
+  win.webContents.openDevTools();
   win.loadURL(
     url.format({
       pathname: path.join(__dirname, 'index.html'),
@@ -103,10 +82,6 @@ app.on('window-all-closed', () => {
   }
 });
 
-//app.on('before-quit', (event) => {
-//    deleteFolderRecursively(tempPath);
-//    console.log(`Folder deleted on app quit: ${tempPath}`);
-//});
 
 app.on('activate', () => {
   if (win === null) {
@@ -117,40 +92,78 @@ app.on('activate', () => {
 const pythonExecutablePath = path.join(process.resourcesPath, 'python_script');
 const pythonScriptPath = path.join(__dirname, 'python_script.py');
 //const pythonExecutablePath = path.join(__dirname, 'resources/python_script');
-const pythonInterpreter = path.join(__dirname, "pm_venv/bin/python");
+const pythonInterpreter = path.join("/Users/davidlaquerre/m_venv/bin/python");
 
 console.log('Main process starting...');
 
 
 ipcMain.on('load-paths', (event, selectedDirectory, fileCount) => {
 //    const pythonScriptPath = path.join(__dirname, 'python_script.py');
-
-
+// Assuming pythonExecutablePath, pythonInterpreter, pythonScriptPath, selectedDirectory, fileCount, and win are defined appropriately
 
     try {
         console.log("Python Executable Path:", pythonExecutablePath);
-        const pythonProcess = spawn(pythonExecutablePath, [selectedDirectory, fileCount]);
-//        const pythonProcess = spawn(pythonInterpreter, [pythonScriptPath, directoryPath, tempPath, fileCount], { env: process.env });
-        console.log('python process spawned')
+        const pythonProcess = spawn(pythonInterpreter, [pythonScriptPath, selectedDirectory, fileCount], { env: process.env });
+        console.log('Python process spawned');
+
+        let buffer = '';
         pythonProcess.stdout.on('data', (data) => {
-            console.log(data)
-            try {
-                const jsonData = JSON.parse(data);
-                if (jsonData.progress !== undefined) {
-                    console.log(`data:${jsonData.progress}`)
-                    win.webContents.send("update-progress", jsonData.progress);
-                } else if (jsonData.paths) {
-                    win.webContents.send("paths-data", jsonData.paths);
+            buffer += data.toString();  // Accumulate data in the buffer
+
+            // Try to find a complete JSON object
+            let boundary = buffer.indexOf('\n'); // Assuming each JSON object ends with a newline
+            while (boundary !== -1) {
+                const jsonStr = buffer.substring(0, boundary).trim();
+                buffer = buffer.substring(boundary + 1); // Remove processed part from the buffer
+
+                try {
+                    if (jsonStr) {
+                        const jsonData = JSON.parse(jsonStr);  // Parse the JSON string
+                        if (jsonData.progress !== undefined) {
+                            console.log(`data:${jsonData.progress}`);
+                            win.webContents.send("update-progress", jsonData.progress);
+                        } else if (jsonData.paths) {
+                            win.webContents.send("paths-data", jsonData.paths);
+                        }
+                    }
+                } catch (parseError) {
+                    console.error(`Error parsing JSON data: ${parseError} - ${jsonStr}`);
                 }
-            } catch (parseError) {
-                console.error(`Error parsing JSON data: ${parseError}`);
-                console.log(`${data}`)
+
+                boundary = buffer.indexOf('\n'); // Check for the next JSON object
             }
         });
 
     } catch (error) {
         console.error(`Error spawning Python process: ${error}`);
     }
+
+
+
+//    try {
+//        console.log("Python Executable Path:", pythonExecutablePath);
+////        const pythonProcess = spawn(pythonExecutablePath, [selectedDirectory, fileCount]);
+//        const pythonProcess = spawn(pythonInterpreter, [pythonScriptPath, selectedDirectory, fileCount], { env: process.env });
+//        console.log('python process spawned')
+//        pythonProcess.stdout.on('data', (data) => {
+//            console.log(data)
+//            try {
+//                const jsonData = JSON.parse(data);
+//                if (jsonData.progress !== undefined) {
+//                    console.log(`data:${jsonData.progress}`)
+//                    win.webContents.send("update-progress", jsonData.progress);
+//                } else if (jsonData.paths) {
+//                    win.webContents.send("paths-data", jsonData.paths);
+//                }
+//            } catch (parseError) {
+//                console.error(`Error parsing JSON data: ${parseError} - ${data}`);
+//                console.log(`${data}`)
+//            }
+//        });
+//
+//    } catch (error) {
+//        console.error(`Error spawning Python process: ${error}`);
+//    }
 });
 
 
@@ -162,21 +175,6 @@ function customLog(...args) {
   }
 }
 
-
-
-//function convertMovToMp4(inputPath, outputPath) {
-//    ffmpeg(inputPath)
-//        .format('mp4')
-//        .on('end', () => {
-//            console.log('Conversion finished.');
-//        })
-//        .on('error', (err) => {
-//            console.error('Error:', err);
-//        })
-//        .save(outputPath);
-//}
-
-//convertMovToMp4('path/to/input.mov', 'path/to/output.mp4');
 
 
 ipcMain.on('copy-marked-files', (event, selectedFiles, destinationDirectory) => {
@@ -207,5 +205,3 @@ ipcMain.on('copy-marked-files', (event, selectedFiles, destinationDirectory) => 
     }
 });
 
-
-//msiexec /i F:\Dropbox\_Programming\PHOTO_MGMT\release-builds\installer64\PhotoMgmt-1.0.0-setup.msi /L*V "F:\Dropbox\_Programming\PHOTO_MGMT\release-builds\installer64\install.log"

@@ -44,11 +44,12 @@ function restoreSelectionState() {
 ipcRenderer.on('log', (event, ...args) => {
     console.log(...args); // This will log in the renderer's console
 });
-ipcRenderer.on('paths-data', (event, pathsDataFromPython) => {
+ipcRenderer.on('paths-data', (event, pathData) => {
 
-  pathsData = pathsDataFromPython
-  console.log('Received paths-data event with data:', pathsData);
-  createButtons(pathsData);
+  console.log('Received paths-data event with data:', pathData);
+//  createButtons(pathData);
+    addThumbnail(pathData);
+    updateSelectionStateForThumbnail(pathData);
 });
 
 ipcRenderer.on("update-progress", (event, progress) => {
@@ -153,61 +154,109 @@ function openViewer(src, isVideo) {
 // Example: openViewer('path/to/image.jpg', false);
 
 
-function createButtons(thumbnailsData) {
+//function createButtons(thumbnailsData) {
+//    const buttonContainer = document.getElementById('buttonContainer');
+//    buttonContainer.innerHTML = ''; // Clear existing buttons
+//
+//    thumbnailsData.forEach((thumbnailData, index) => {
+//        console.log(`${thumbnailData.path_file}`);
+//        const buttonWrapper = document.createElement('div');
+//        buttonWrapper.className = 'buttonWrapper';
+//
+//        const thumbnail = document.createElement('img');
+//        thumbnail.className = 'thumbnail';
+//        thumbnail.dataset.src = `file://${thumbnailData.path_rep}`;
+////        thumbnail.dataset.src =
+//        lazyLoadThumbnail(thumbnail)
+//        // Determine if the file is a video or image
+//        const extension = path.extname(thumbnailData.path_file).toLowerCase().slice(1);
+//        const tickBox = document.createElement('input');
+//        tickBox.type = 'checkbox';
+//        tickBox.className = 'tickBox';
+//        tickBox.setAttribute('data-index', index);
+//        tickBox.checked = true;
+//        const isVideo = formats.videos.includes(extension);
+//
+//    thumbnail.addEventListener('click', () => {
+//      const imageViewer = document.getElementById('viewerImage');
+//      const videoPlayer = document.getElementById('viewerVideo');
+//
+//      if (isVideo) {
+////          imageViewer.innerHTML = ''; // Clear the image viewer
+//          playVideoInPlayer(thumbnailData.path_file);
+//      } else {
+////          videoPlayer.innerHTML = ''; // Clear the video player
+//          showImageInViewer(thumbnailData.path_rep);
+//      }
+//    });
+//
+//
+//        buttonWrapper.appendChild(thumbnail);
+//        buttonWrapper.appendChild(tickBox);
+//        buttonContainer.appendChild(buttonWrapper);
+////        tickBox.checked = selectionState[index] || true;
+//
+////
+//
+//    });
+//    // After creating all checkboxes
+//    thumbnailsData.forEach((thumbnailData, index) => {
+//        const tickBox = document.querySelector(`.tickBox[data-index="${index}"]`);
+//        if (selectionState[index] !== undefined) {
+//            tickBox.checked = selectionState[index];
+//        }
+//    });
+//
+////    restoreSelectionState();
+//}
+
+
+function addThumbnail(thumbnailData) {
     const buttonContainer = document.getElementById('buttonContainer');
-    buttonContainer.innerHTML = ''; // Clear existing buttons
 
-    thumbnailsData.forEach((thumbnailData, index) => {
-        console.log(`${thumbnailData.path_file}`);
-        const buttonWrapper = document.createElement('div');
-        buttonWrapper.className = 'buttonWrapper';
+    const buttonWrapper = document.createElement('div');
+    buttonWrapper.className = 'buttonWrapper';
 
-        const thumbnail = document.createElement('img');
-        thumbnail.className = 'thumbnail';
-        thumbnail.dataset.src = `file://${thumbnailData.path_rep}`;
-//        thumbnail.dataset.src =
-        lazyLoadThumbnail(thumbnail)
-        // Determine if the file is a video or image
-        const extension = path.extname(thumbnailData.path_file).toLowerCase().slice(1);
-        const tickBox = document.createElement('input');
-        tickBox.type = 'checkbox';
-        tickBox.className = 'tickBox';
-        tickBox.setAttribute('data-index', index);
-        tickBox.checked = true;
-        const isVideo = formats.videos.includes(extension);
+    const thumbnail = document.createElement('img');
+    thumbnail.className = 'thumbnail';
+    thumbnail.dataset.src = `file://${thumbnailData.path_rep}`;
+    lazyLoadThumbnail(thumbnail);
+
+    // Determine if the file is a video or image
+    const extension = path.extname(thumbnailData.path_file).toLowerCase().slice(1);
+    const tickBox = document.createElement('input');
+    tickBox.type = 'checkbox';
+    tickBox.className = 'tickBox';
+    // Use the path as a unique identifier instead of an index
+    tickBox.setAttribute('data-path', thumbnailData.path_file);
+    tickBox.checked = true;
+    const isVideo = formats.videos.includes(extension);
 
     thumbnail.addEventListener('click', () => {
-      const imageViewer = document.getElementById('viewerImage');
-      const videoPlayer = document.getElementById('viewerVideo');
+        const imageViewer = document.getElementById('viewerImage');
+        const videoPlayer = document.getElementById('viewerVideo');
 
-      if (isVideo) {
-//          imageViewer.innerHTML = ''; // Clear the image viewer
-          playVideoInPlayer(thumbnailData.path_file);
-      } else {
-//          videoPlayer.innerHTML = ''; // Clear the video player
-          showImageInViewer(thumbnailData.path_rep);
-      }
-    });
-
-
-        buttonWrapper.appendChild(thumbnail);
-        buttonWrapper.appendChild(tickBox);
-        buttonContainer.appendChild(buttonWrapper);
-//        tickBox.checked = selectionState[index] || true;
-
-//
-
-    });
-    // After creating all checkboxes
-    thumbnailsData.forEach((thumbnailData, index) => {
-        const tickBox = document.querySelector(`.tickBox[data-index="${index}"]`);
-        if (selectionState[index] !== undefined) {
-            tickBox.checked = selectionState[index];
+        if (isVideo) {
+            playVideoInPlayer(thumbnailData.path_file);
+        } else {
+            showImageInViewer(thumbnailData.path_rep);
         }
     });
 
-//    restoreSelectionState();
+    buttonWrapper.appendChild(thumbnail);
+    buttonWrapper.appendChild(tickBox);
+    buttonContainer.appendChild(buttonWrapper);
 }
+
+// Update selection state for a new thumbnail
+function updateSelectionStateForThumbnail(thumbnailData) {
+    const tickBox = document.querySelector(`.tickBox[data-path="${thumbnailData.path_file}"]`);
+    if (selectionState[thumbnailData.path_file] !== undefined) {
+        tickBox.checked = selectionState[thumbnailData.path_file];
+    }
+}
+
+
 
 document.addEventListener('change', event => {
     if(event.target.classList.contains('tickBox')) {

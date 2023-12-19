@@ -1,5 +1,10 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+#to compile run:
+#pyinstaller python_script.py --onefile
+#npm run pack
+#npm run dist
+
 
 import os
 import sysconfig
@@ -74,6 +79,7 @@ except Exception as e:
 
 def thumbnail_path(file):
     dest_filename = os.path.join(dest_folder, os.path.splitext(os.path.basename(file))[0] + ".jpeg")
+    # print(dest_filename)
     return dest_filename
 
 
@@ -164,7 +170,7 @@ def create_paths_dict(paths):
     output = []
     img_processed = 0
     for p in paths:
-
+        js = {}
         ext = os.path.splitext(p)[1].lower()
 
         js_p = js_path(p)
@@ -173,22 +179,36 @@ def create_paths_dict(paths):
             # for heics
             jpg = convert_heic_to_jpg(p)
             js_jpg = js_path(jpg)
-            output.append({colist[0]: js_p, colist[1]: js_jpg, colist[2]: False, colist[3]: True})
+            file_data = {colist[0]: p, colist[1]: js_jpg}
+            # output.append(file_data)
+
         elif ext in video_extensions:
 
             t_dest = get_vid_thumbnail(p)
             js_thumb = js_path(t_dest)
-            output.append({colist[0]: js_p, colist[1]: js_thumb, colist[2]: False, colist[3]: True})
+            file_data = {colist[0]: p, colist[1]: js_thumb}
+            # output.append(file_data)
+
         else:
             # any other image file
-            output.append({colist[0]: js_p, colist[1]: js_p, colist[2]: False, colist[3]: True})
+            #, colist[2]: False, colist[3]: True
+
+            file_data = {colist[0]: p, colist[1]: p}
+            # output.append(file_data)
+
+        js_paths = {"paths": file_data}
+        js = json.dumps(js_paths)
+        print(js, flush=True)
+
         img_processed += 1
         progress_update = json.dumps({'progress': img_processed})
         print(progress_update, flush=True)
-    js_paths = {'paths': output}
-    js = json.dumps(js_paths, indent=2)
+
+    # js_paths = {'paths': output}
+    # js = json.dumps(js_paths)
+
     # parsed_js = json.load(js)
-    return js
+    # return js
 
 
 def write_to_database(js):
@@ -198,18 +218,19 @@ def write_to_database(js):
 
 
 if __name__ == '__main__':
-
+    # fileCount = 0
+    # directory = os.path.join("/Users/davidlaquerre/Desktop/sample_data")
+    #
+    # file_paths = get_image_paths(directory, fileCount)
+    # paths_data = create_paths_dict(file_paths)
     try:
         directory = sys.argv[1]
-        # dest_folder = sys.argv[1]
         fileCount = sys.argv[2]
-        # fileCount = 0
-        # dest_folder = os.path.join(r"C:\Users\dlaqu\OneDrive\Desktop", "temp")
-        # os.mkdir(dest_folder)
-        # directory = os.path.join(r"/Users/davidlaquerre/Desktop/sample_data")
+
         file_paths = get_image_paths(directory, fileCount)
         paths_data = create_paths_dict(file_paths)
-        print(paths_data)
+
+        # print(paths_data)
 
 
     except Exception as e:
