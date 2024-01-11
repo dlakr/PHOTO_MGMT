@@ -60,7 +60,7 @@ function createWindow() {
       webSecurity: true,
     },
   });
-  win.webContents.openDevTools();
+//  win.webContents.openDevTools();
   win.loadURL(
     url.format({
       pathname: path.join(__dirname, 'index.html'),
@@ -89,10 +89,15 @@ app.on('activate', () => {
   }
 });
 
-const pythonExecutablePath = path.join(process.resourcesPath, 'python_script');
-const pythonScriptPath = path.join(__dirname, 'python_script.py');
-//const pythonExecutablePath = path.join(__dirname, 'resources/python_script');
-const pythonInterpreter = path.join("/Users/davidlaquerre/m_venv/bin/python");
+
+const pythonScriptPath = path.join(process.resourcesPath, 'python_script.py');
+const pythonInterpreter = path.join(process.resourcesPath, 'pm_venv/bin/python')
+
+//const pythonScriptPath = path.join(__dirname, 'python_script.py');
+////const pythonExecutablePath = path.join(__dirname, 'resources/python_script/python_script');
+//const pythonInterpreter = path.join("/Users/davidlaquerre/m_venv/bin/python");
+
+
 
 console.log('Main process starting...');
 
@@ -100,10 +105,12 @@ console.log('Main process starting...');
 ipcMain.on('load-paths', (event, selectedDirectory, fileCount) => {
 //    const pythonScriptPath = path.join(__dirname, 'python_script.py');
 // Assuming pythonExecutablePath, pythonInterpreter, pythonScriptPath, selectedDirectory, fileCount, and win are defined appropriately
-
+    win.reload();
     try {
-        console.log("Python Executable Path:", pythonExecutablePath);
+//        console.log("Python Executable Path:", pythonInterpreter);
+//        console.log("Python script:", pythonInterpreter);
         const pythonProcess = spawn(pythonInterpreter, [pythonScriptPath, selectedDirectory, fileCount], { env: process.env });
+//        const pythonProcess = spawn(pythonExecutablePath, [selectedDirectory, fileCount])
         console.log('Python process spawned');
 
         let buffer = '';
@@ -124,46 +131,25 @@ ipcMain.on('load-paths', (event, selectedDirectory, fileCount) => {
                             win.webContents.send("update-progress", jsonData.progress);
                         } else if (jsonData.paths) {
                             win.webContents.send("paths-data", jsonData.paths);
+                        } else if (jsonData.finished) {
+                            dialog.showMessageBox(win, {
+                                type: 'info',
+                                title: 'Scan Complete',
+                                message: 'All paths have been scanned.',
+                                buttons: ['OK']
+                            });
                         }
+
                     }
                 } catch (parseError) {
                     console.error(`Error parsing JSON data: ${parseError} - ${jsonStr}`);
                 }
-
                 boundary = buffer.indexOf('\n'); // Check for the next JSON object
             }
         });
-
     } catch (error) {
         console.error(`Error spawning Python process: ${error}`);
     }
-
-
-
-//    try {
-//        console.log("Python Executable Path:", pythonExecutablePath);
-////        const pythonProcess = spawn(pythonExecutablePath, [selectedDirectory, fileCount]);
-//        const pythonProcess = spawn(pythonInterpreter, [pythonScriptPath, selectedDirectory, fileCount], { env: process.env });
-//        console.log('python process spawned')
-//        pythonProcess.stdout.on('data', (data) => {
-//            console.log(data)
-//            try {
-//                const jsonData = JSON.parse(data);
-//                if (jsonData.progress !== undefined) {
-//                    console.log(`data:${jsonData.progress}`)
-//                    win.webContents.send("update-progress", jsonData.progress);
-//                } else if (jsonData.paths) {
-//                    win.webContents.send("paths-data", jsonData.paths);
-//                }
-//            } catch (parseError) {
-//                console.error(`Error parsing JSON data: ${parseError} - ${data}`);
-//                console.log(`${data}`)
-//            }
-//        });
-//
-//    } catch (error) {
-//        console.error(`Error spawning Python process: ${error}`);
-//    }
 });
 
 

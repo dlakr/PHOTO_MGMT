@@ -150,66 +150,6 @@ function openViewer(src, isVideo) {
     viewerContainer.style.display = 'block';
 }
 
-// Add click event listeners to your thumbnails to open the viewer
-// Example: openViewer('path/to/image.jpg', false);
-
-
-//function createButtons(thumbnailsData) {
-//    const buttonContainer = document.getElementById('buttonContainer');
-//    buttonContainer.innerHTML = ''; // Clear existing buttons
-//
-//    thumbnailsData.forEach((thumbnailData, index) => {
-//        console.log(`${thumbnailData.path_file}`);
-//        const buttonWrapper = document.createElement('div');
-//        buttonWrapper.className = 'buttonWrapper';
-//
-//        const thumbnail = document.createElement('img');
-//        thumbnail.className = 'thumbnail';
-//        thumbnail.dataset.src = `file://${thumbnailData.path_rep}`;
-////        thumbnail.dataset.src =
-//        lazyLoadThumbnail(thumbnail)
-//        // Determine if the file is a video or image
-//        const extension = path.extname(thumbnailData.path_file).toLowerCase().slice(1);
-//        const tickBox = document.createElement('input');
-//        tickBox.type = 'checkbox';
-//        tickBox.className = 'tickBox';
-//        tickBox.setAttribute('data-index', index);
-//        tickBox.checked = true;
-//        const isVideo = formats.videos.includes(extension);
-//
-//    thumbnail.addEventListener('click', () => {
-//      const imageViewer = document.getElementById('viewerImage');
-//      const videoPlayer = document.getElementById('viewerVideo');
-//
-//      if (isVideo) {
-////          imageViewer.innerHTML = ''; // Clear the image viewer
-//          playVideoInPlayer(thumbnailData.path_file);
-//      } else {
-////          videoPlayer.innerHTML = ''; // Clear the video player
-//          showImageInViewer(thumbnailData.path_rep);
-//      }
-//    });
-//
-//
-//        buttonWrapper.appendChild(thumbnail);
-//        buttonWrapper.appendChild(tickBox);
-//        buttonContainer.appendChild(buttonWrapper);
-////        tickBox.checked = selectionState[index] || true;
-//
-////
-//
-//    });
-//    // After creating all checkboxes
-//    thumbnailsData.forEach((thumbnailData, index) => {
-//        const tickBox = document.querySelector(`.tickBox[data-index="${index}"]`);
-//        if (selectionState[index] !== undefined) {
-//            tickBox.checked = selectionState[index];
-//        }
-//    });
-//
-////    restoreSelectionState();
-//}
-
 
 function addThumbnail(thumbnailData) {
     const buttonContainer = document.getElementById('buttonContainer');
@@ -218,8 +158,14 @@ function addThumbnail(thumbnailData) {
     buttonWrapper.className = 'buttonWrapper';
 
     const thumbnail = document.createElement('img');
+    const file_ext = document.createElement('div');
+
     thumbnail.className = 'thumbnail';
     thumbnail.dataset.src = `file://${thumbnailData.path_rep}`;
+    pathsData.push(thumbnailData)
+    file_ext.textContent = `${thumbnailData.ext}`;
+//    const index = `${thumbnailData.idx}`;
+    file_ext.className = "ext"
     lazyLoadThumbnail(thumbnail);
 
     // Determine if the file is a video or image
@@ -229,6 +175,7 @@ function addThumbnail(thumbnailData) {
     tickBox.className = 'tickBox';
     // Use the path as a unique identifier instead of an index
     tickBox.setAttribute('data-path', thumbnailData.path_file);
+    tickBox.setAttribute('data-index', thumbnailData.idx.toString());
     tickBox.checked = true;
     const isVideo = formats.videos.includes(extension);
 
@@ -245,6 +192,7 @@ function addThumbnail(thumbnailData) {
 
     buttonWrapper.appendChild(thumbnail);
     buttonWrapper.appendChild(tickBox);
+    buttonWrapper.appendChild(file_ext);
     buttonContainer.appendChild(buttonWrapper);
 }
 
@@ -270,11 +218,21 @@ document.getElementById('selectDirectory').addEventListener('change', (event) =>
     let selectedDirectory = path.dirname(filePath);
     ipcRenderer.send('load-paths', selectedDirectory, fileCount);
 });
-
+//
+//let destDirectory = ""
+//document.getElementById("copySelectedButton").addEventListener('change', (event) => {
+//
+//    let destPath = document.getElementById("copySelectedButton").files[0].path;
+//    let destDirectory = path.dirname(filePath);
+////    ipcRenderer.send('dest-path', destDirectory);
+//});
 
 function getDesktopCopiedFolderPath() {
+    const destinput = document.getElementById("destDir")
+    const destDir = destinput.value;
+    console.log(`${destDir}`)
     const desktopPath = path.join(os.homedir(), 'Desktop');
-    const copiedFolderPath = path.join(desktopPath, 'copied');
+    const copiedFolderPath = path.join(desktopPath, destDir);
 
 
     if (!fs.existsSync(copiedFolderPath)) {
@@ -288,30 +246,32 @@ function getDesktopCopiedFolderPath() {
 
 
 function copySelectedFiles() {
+
     // Get all tickboxes
     console.log('copying')
     const tickBoxes = document.querySelectorAll('.tickBox');
-    const destinationDirectory = getDesktopCopiedFolderPath();
-    fs.chmodSync(destinationDirectory, 0o766);
+    const destDirectory = getDesktopCopiedFolderPath();
+//    console.log('Tick Boxes:', Array.from(tickBoxes)); // Debugging
+//    console.log('PathsData:', pathsData); // Debugging
+    fs.chmodSync(destDirectory, 0o766);
 
-    const selectedFiles = Array.from(tickBoxes).filter(tickBox => tickBox.checked).map(tickBox => {
-        const index = parseInt(tickBox.getAttribute('data-index'), 10); // Retrieve the index from the tickBox attribute
+    const selectedFiles = Array.from(tickBoxes).filter(tickBox => {
+        console.log('Tick Box Checked:', tickBox.checked); // Debugging
+        return tickBox.checked;
+    }).map(tickBox => {
+        const index = parseInt(tickBox.getAttribute('data-index'), 10);
+        console.log('Index:', index); // Debugging
 
         if (!pathsData[index]) {
             console.error(`No pathsData entry found for index ${index}.`);
             return null;
         }
 
-        return pathsData[index].path_file; // Return the path_file for this index
-    }).filter(Boolean); // This filter removes any null values from the array.
+        return pathsData[index].path_file;
+    }).filter(Boolean);
 
-    if (selectedFiles.length === 0) {
-        console.log('No files selected for copying.');
-        return;
-    }
-
-    console.log(`${selectedFiles} to ${destinationDirectory}`)
-    ipcRenderer.send('copy-marked-files', selectedFiles, destinationDirectory);
+    console.log('Selected Files:', selectedFiles); // Debugging
+    ipcRenderer.send('copy-marked-files', selectedFiles, destDirectory);
 }
 
 function resetAppState() {
@@ -333,28 +293,12 @@ function resetAppState() {
 
 const copySelectedButton = document.getElementById('copySelectedButton');
 copySelectedButton.addEventListener('click', copySelectedFiles);
-
+//copySelectedButton.addEventListener('click', console.log("copyselected clicked"));
+//console.log("copyselected clicked")
 const originalLog = console.log;
 
 const originalError = console.error;
 
-document.getElementById('selectDirectory').addEventListener('click', function() {
-    resetAppState();
-});
-//const customConsole = document.getElementById('customConsole');
-//
-//console.log = function (...args) {
-//    originalLog.apply(console, args);
-//    customConsole.innerHTML += '<div style="color: black;">' + args.join(' ') + '</div>';
-//    customConsole.scrollTop = customConsole.scrollHeight;
-//}
-//
-//
-//console.error = function (...args) {
-//    originalError.apply(console, args);
-//    customConsole.innerHTML += '<div style="color: red;">' + args.join(' ') + '</div>';
-//    customConsole.scrollTop = customConsole.scrollHeight;
-//}
 
 
 

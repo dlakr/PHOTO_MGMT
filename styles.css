@@ -1,6 +1,7 @@
 #buttonContainer {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+
   grid-gap: 10px;
   max-height: 25%;
   overflow-y: auto;
@@ -8,26 +9,44 @@
 
 .buttonWrapper {
   display: flex;
-  align-items: center;
-  justify-content: flex-start;
+  width: 150px;
+  height: 180px;
+  margin-top: 10px;
+  align-items: top;
+  justify-content: center;
   margin-bottom: 10px;
   position: relative;
+  //border: 1px solid #000000;
+  background-color: #9C9C9C;
+  border-radius: 10px
 }
 
 
 .thumbnail {
-  width: 130px;
+  width: auto;
+  margin-top: 10px;
+  max-width: 150px;
   height: auto;
-  max-height: 130px;
+  max-height: 150px;
   object-fit: cover;
-  margin-right: 10px;  // added this to give some space between the image and the tickbox
+
+  //margin-right: 10px;  // added this to give some space between the image and the tickbox
 }
 
 .tickBox {
+  margin-left: auto;
+  top: 10px;
   position: absolute;
   right: 5px;
 }
+.ext {
+    //margin-left: auto;
+    position: absolute;
+    justify-content: center;
+    bottom: 0px;
+    //right: 5px;
 
+}
 
 .viewer-container {
     display: none; /* Hidden by default */

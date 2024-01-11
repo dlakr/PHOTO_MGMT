@@ -3,6 +3,8 @@
 #to compile run:
 #pyinstaller python_script.py --onefile
 #npm run pack
+
+
 #npm run dist
 
 
@@ -31,27 +33,27 @@ dest_folder = tempfile.mkdtemp()
 
 media_found = 0
 def set_permissions(path, val):
-    if os_type == 'Darwin':
+    if os_type == "Darwin":
         try:
             # Using chmod command to set permissions to 666
-            subprocess.run(f'chmod -R {val} {path}', check=True)
+            subprocess.run(f"chmod -R {val} {path}", check=True)
             # print(f"Permissions of {path} set to {val}")
         except subprocess.CalledProcessError as er:
             print(f"Error setting permissions: {er}")
 
 
 def desktop():
-    if os_type == 'Darwin':
-        desktop = os.path.join(os.environ['HOME'], 'Desktop')
+    if os_type == "Darwin":
+        desktop = os.path.join(os.environ["HOME"], "Desktop")
     else:
-        desktop = os.path.join(os.environ['USERPROFILE'], 'Desktop')
+        desktop = os.path.join(os.environ["USERPROFILE"], "Desktop")
     return desktop
 
 
 # db_name = "photo_database.sqlite"
 # conn = sqlite3.connect(db_name)
-tables = {"vol": "volume", "ext": 'extensions', "err": 'errors'}
-cols = {"path_file": "text NOT NULL UNIQUE", "path_rep": "text", "copied": "bool", 'to_copy': 'bool'}
+tables = {"vol": "volume", "ext": "extensions", "err": "errors"}
+cols = {"path_file": "text NOT NULL UNIQUE", "path_rep": "text", "copied": "bool", "to_copy": "bool"}
 
 
 
@@ -60,18 +62,18 @@ json_formats = {
     "images": ["jpg", "jpeg", "heic", "png", "crw", "bmp"]
 }
 
-def get_formats():
-    with open(json_formats) as f:
-        data = json.load(f)
-    return data
+# def get_formats():
+#     with open(json_formats) as f:
+#         data = json.load(f)
+#     return data
 
 
 try:
-    image_extensions = ['.' + i for i in json_formats["images"]]
-    video_extensions = ['.' + i for i in json_formats["videos"]]
+    image_extensions = ["." + i for i in json_formats["images"]]
+    video_extensions = ["." + i for i in json_formats["videos"]]
 
-    # image_extensions = ['.'+i for i in  get_formats()["images"]]
-    # video_extensions = ['.'+i for i in  get_formats()["videos"]]
+    # image_extensions = ["."+i for i in  get_formats()["images"]]
+    # video_extensions = ["."+i for i in  get_formats()["videos"]]
     file_extensions = image_extensions + video_extensions
 except Exception as e:
     print(e)
@@ -84,13 +86,13 @@ def thumbnail_path(file):
 
 
 def write_output(out):
-    with open(os.path.join(desktop(), "output", "js_out.log"), 'w') as file:
+    with open(os.path.join(desktop(), "output", "js_out.log"), "w") as file:
         file.write(out)
 
 
 def log(log):
     path = os.path.join(desktop(), "HEIC.log")
-    with open(path, 'a') as f:
+    with open(path, "a") as f:
         f.write(f"{log}\n")
 
 
@@ -112,7 +114,7 @@ def convert_heic_to_jpg(heic):
             dest_filename = thumbnail_path(heic)
 
             ex = img.getexif()
-            img.save(dest_filename, format='JPEG', exif=ex)
+            img.save(dest_filename, format="JPEG", exif=ex)
             return dest_filename
     except PIL.UnidentifiedImageError as error:
         log(error)
@@ -140,7 +142,7 @@ def get_image_paths(directory, fileCount):
             if is_valid_file(file):
                 image_paths.append(path)
             media_found += 1
-            # progress_update = json.dumps({'progress': media_found})
+            # progress_update = json.dumps({"progress": media_found})
             # print(progress_update, flush=True)
 
     return image_paths
@@ -168,14 +170,17 @@ def js_path(path):
 def create_paths_dict(paths):
     colist = list(cols)
     output = []
+
     img_processed = 0
     for p in paths:
+
         js = {}
         ext = os.path.splitext(p)[1].lower()
+        fname = os.path.split(p)
 
         js_p = js_path(p)
 
-        if ext == '.heic':
+        if ext == ".heic":
             # for heics
             jpg = convert_heic_to_jpg(p)
             js_jpg = js_path(jpg)
@@ -196,15 +201,22 @@ def create_paths_dict(paths):
             file_data = {colist[0]: p, colist[1]: p}
             # output.append(file_data)
 
+        file_data.update({"ext": ext.strip(".").upper()})
+        file_data.update({"idx": img_processed})
+        img_processed += 1
+        # print(file_data)
         js_paths = {"paths": file_data}
         js = json.dumps(js_paths)
         print(js, flush=True)
 
-        img_processed += 1
-        progress_update = json.dumps({'progress': img_processed})
-        print(progress_update, flush=True)
 
-    # js_paths = {'paths': output}
+
+        progress_update = json.dumps({"progress": img_processed})
+
+        print(progress_update, flush=True)
+    js_finished = json.dumps({"finished": "finished"})
+    print(js_finished)
+    # js_paths = {"paths": output}
     # js = json.dumps(js_paths)
 
     # parsed_js = json.load(js)
@@ -217,27 +229,24 @@ def write_to_database(js):
     pass
 
 
-if __name__ == '__main__':
-    # fileCount = 0
-    # directory = os.path.join("/Users/davidlaquerre/Desktop/sample_data")
+if __name__ == "__main__":
+    fileCount = 0
+    directory = os.path.join("/Users/davidlaquerre/Desktop/sample_data")
+
+    file_paths = get_image_paths(directory, fileCount)
+    paths_data = create_paths_dict(file_paths)
+    # try:
+    #     directory = sys.argv[1]
+    #     fileCount = sys.argv[2]
     #
-    # file_paths = get_image_paths(directory, fileCount)
-    # paths_data = create_paths_dict(file_paths)
-    try:
-        directory = sys.argv[1]
-        fileCount = sys.argv[2]
+    #     file_paths = get_image_paths(directory, fileCount)
+    #     paths_data = create_paths_dict(file_paths)
+    #
+    #
+    #
+    # except Exception as e:
+    #     now = datetime.datetime.now()
+    #     print(f"{now} - Final error: {e}\n")
 
-        file_paths = get_image_paths(directory, fileCount)
-        paths_data = create_paths_dict(file_paths)
-
-        # print(paths_data)
-
-
-    except Exception as e:
-        now = datetime.datetime.now()
-        print(f"{now} - Final error: {e}\n")
-        # with open(os.path.join(desktop(), "pm_log.log"), "a") as f:
-        #     now = datetime.datetime.now()
-        #     f.write(f"{now} - Final error: {e}\n")
 
 

@@ -5,11 +5,21 @@
   "main": "main.js",
   "build": {
     "appId": "photoMgmt.app",
+    "mac": {
+      "icon": "icons/photo_icon.icns"
+    },
     "target": ["dmg", "zip"],
     "extraResources": [
       {
-        "from": "./resources/python_script",
-        "to": "python_script",
+        "from": "python_script.py",
+        "to": "python_script.py",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "/Users/davidlaquerre/m_venv",
+        "to": "pm_venv",
         "filter": [
           "**/*"
         ]
@@ -18,7 +28,7 @@
   },
   "scripts": {
     "start": "electron .",
-    "package": "electron-packager . photoMgmt --overwrite --platform=darwin --arch=x64",
+    "package": "electron-packager . photoMgmt --overwrite --platform=darwin --arch=x64 --icon=64.icns",
     "pack": "electron-builder --dir",
     "dist": "electron-builder"
   },
